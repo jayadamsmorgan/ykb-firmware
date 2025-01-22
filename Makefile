@@ -8,34 +8,28 @@ STARTUP = cmsis-device-wb/Source/Templates/gcc/startup_stm32wb55xx_cm4.s
 SYSTEM = cmsis-device-wb/Source/Templates/system_stm32wbxx.c
 LD_SCRIPT = cmsis-device-wb/Source/Templates/gcc/linker/stm32wb55xx_flash_cm4.ld
 CMSIS_INC_DIR = CMSIS_5/CMSIS/Core/Include
-CMSIS_DEV_INC_DIR = cmsis-device-wb/Include
+CMSIS_DEVICE_INC_DIR = cmsis-device-wb/Include
 INC_DIR = include
 SRC_DIR = src
 BUILD_DIR = build
 
-SRCS = $(SRC_DIR)/clock.c \
-	   $(SRC_DIR)/gpio.c \
-	   $(SRC_DIR)/keyboard.c \
-	   $(SRC_DIR)/main.c \
-	   $(SRC_DIR)/mux.c \
-	   $(SRC_DIR)/system.c \
-	   $(SRC_DIR)/systick.c \
-	   $(SRC_DIR)/uart.c \
-	   $(STARTUP) \
-	   $(SYSTEM)
+SRCS = $(shell find $(SRC_DIR) -type f -name '*.c')
+
+SRCS += $(STARTUP) \
+	    $(SYSTEM)
 
 CFLAGS = -g -O2 -Wall -Werror -T $(LD_SCRIPT) \
 		 -mlittle-endian -mthumb -mcpu=$(MCU) -mthumb-interwork \
 		 -mfloat-abi=hard -mfpu=fpv4-sp-d16 \
 		 --specs=nosys.specs \
 		 -I$(CMSIS_INC_DIR) \
-		 -I$(CMSIS_DEV_INC_DIR) \
+		 -I$(CMSIS_DEVICE_INC_DIR) \
 		 -I$(INC_DIR) \
 		 -D$(BOARD) \
 		 $(EXTRA_CFLAGS)
 
 compile:
-	mkdir -p build
+	@mkdir -p build
 	$(CC) $(CFLAGS) $(SRCS) -o $(BUILD_DIR)/firmware.elf
 	$(OBJCOPY) -O binary $(BUILD_DIR)/firmware.elf $(BUILD_DIR)/firmware.bin
 
@@ -49,6 +43,6 @@ clean:
 	rm -rf $(BUILD_DIR)/*
 
 compile_commands: clean
-	compiledb make
+	@compiledb make
 
-.PHONY: clean flash compile_commands
+.PHONY: compile clean flash compile_commands

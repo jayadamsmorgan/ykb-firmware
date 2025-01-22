@@ -1,38 +1,42 @@
 #ifndef MUX_H
 #define MUX_H
 
-#include "gpio.h"
+#include <stdbool.h>
+#include <stdint.h>
+
+#define HIGH true
+#define LOW false
 
 #ifndef PIN_MUX_0
-#define PIN_MUX_0 PB0
+#define PIN_MUX_0 0
 #endif // PIN_MUX_0
 
 #ifndef PIN_MUX_1
-#define PIN_MUX_1 PB1
+#define PIN_MUX_1 1
 #endif // PIN_MUX_1
 
 #ifndef PIN_MUX_2
-#define PIN_MUX_2 PB2
+#define PIN_MUX_2 2
 #endif // PIN_MUX_2
 
 #ifndef PIN_MUX_CHAN_A
-#define PIN_MUX_CHAN_A PA0
+#define PIN_MUX_CHAN_A 3
 #endif // PIN_MUX_CHAN_A
 
 #ifndef PIN_MUX_CHAN_B
-#define PIN_MUX_CHAN_B PA1
+#define PIN_MUX_CHAN_B 4
 #endif // PIN_MUX_CHAN_B
 
 #ifndef PIN_MUX_CHAN_C
-#define PIN_MUX_CHAN_C PA2
+#define PIN_MUX_CHAN_C 5
 #endif // PIN_MUX_CHAN_C
 
 #ifndef PIN_MUX_CHAN_D
-#define PIN_MUX_CHAN_D PA3
+#define PIN_MUX_CHAN_D 6
 #endif // PIN_MUX_CHAN_D
 
 #ifndef PIN_MUX_INPUT
-#define PIN_MUX_INPUT PA4
+#define PIN_MUX_INPUT 7
 #endif // PIN_MUX_INPUT
 
 // Initialize multiplexors.
