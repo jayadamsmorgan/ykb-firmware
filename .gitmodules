@@ -1,3 +1,6 @@
 [submodule "cmsis-device-wb"]
 	path = cmsis-device-wb
 	url = https://github.com/STMicroelectronics/cmsis-device-wb
+[submodule "CMSIS_5"]
+	path = CMSIS_5
+	url = https://github.com/ARM-software/CMSIS_5
