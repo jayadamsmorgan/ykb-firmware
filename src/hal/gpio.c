@@ -2,7 +2,6 @@
 #include "stm32wb55xx.h"
 #include "stm32wbxx.h"
 #include <errno.h>
-#include <math.h>
 #include <stdint.h>
 
 #define SET_1BIT(REG, PINNUM, VALUE)                                           \
@@ -21,6 +20,16 @@
         REG = reg;                                                             \
     } while (0)
 
+#define READ_2BITS(REG, PINNUM) ((REG >> (2 * PINNUM)) & 0b11)
+
+#define SET_3BITS(REG, PINNUM, VALUE)                                          \
+    do {                                                                       \
+        uint32_t reg = REG;                                                    \
+        reg &= ~(0b111 << (PINNUM * 3));                                       \
+        reg |= (VALUE & 0b111) << (PINNUM * 3);                                \
+        REG = reg;                                                             \
+    } while (0)
+
 #define SET_4BITS(REG, PINNUM, VALUE)                                          \
     do {                                                                       \
         uint32_t reg = REG;                                                    \
@@ -34,19 +43,11 @@ void gpio_set_mode(gpio_pin_t pin, gpio_mode mode) {
 }
 
 void gpio_set_af_mode(gpio_pin_t pin, gpio_af_mode mode) {
-
-    uint8_t high_or_low;
-    uint8_t num;
-
-    if (pin.num > 8) {
-        high_or_low = 0; // high reg
-        num = pin.num - 8;
+    if (pin.num > 7) {
+        SET_4BITS(pin.gpio->AFR[1], pin.num - 8, mode);
     } else {
-        high_or_low = 1; // low reg
-        num = pin.num;
+        SET_4BITS(pin.gpio->AFR[0], pin.num, mode);
     }
-
-    SET_4BITS(pin.gpio->AFR[high_or_low], num, mode);
 }
 
 void gpio_set_pupd(gpio_pin_t pin, gpio_pupd pupd) {
@@ -167,6 +168,37 @@ error_t gpio_adc_apply_calibration(gpio_calib_input_mode mode,
     return 0;
 }
 
+typedef enum {
+    GPIO_ADC_SMP_2_5_CYCLES = 0b000,
+    GPIO_ADC_SMP_6_5_CYCLES = 0b001,
+    GPIO_ADC_SMP_12_5_CYCLES = 0b010,
+    GPIO_ADC_SMP_24_5_CYCLES = 0b011,
+    GPIO_ADC_SMP_47_5_CYCLES = 0b100,
+    GPIO_ADC_SMP_92_5_CYCLES = 0b101,
+    GPIO_ADC_SMP_247_5_CYCLES = 0b110,
+    GPIO_ADC_SMP_640_5_CYCLES = 0b111,
+} gpio_adc_sampling_time;
+
+error_t gpio_adc_set_sampling_time(gpio_pin_t pin,
+                                   gpio_adc_sampling_time time) {
+    if (pin.adc_chan <= -1) {
+        return -1;
+    }
+    if (pin.adc_chan > 18) {
+        return -2;
+    }
+    if (READ_2BITS(pin.gpio->MODER, pin.num) != GPIO_MODE_ANALOG) {
+        return -3;
+    }
+    if (pin.adc_chan > 9) {
+        SET_3BITS(ADC1->SMPR2, pin.adc_chan - 10, time);
+    } else {
+        SET_3BITS(ADC1->SMPR1, pin.adc_chan, time);
+    }
+    ADC1->SMPR1;
+    return 0;
+}
+
 void gpio_digital_write(gpio_pin_t pin, bool val) {
     SET_1BIT(pin.gpio->ODR, pin.num, val);
 }
@@ -178,10 +210,17 @@ bool gpio_digital_read(gpio_pin_t pin) {
 void gpio_analog_write(gpio_pin_t pin, uint8_t val) {}
 
 uint8_t gpio_analog_read(gpio_pin_t pin) {
+    if (pin.adc_chan <= -1) {
+        return 0;
+    }
+    if (pin.adc_chan > 18) {
+        return 0;
+    }
     if (READ_BIT(ADC1->CR, ADC_CR_ADEN) == 0) {
         return 0;
     }
     SET_BIT(ADC1->CR, ADC_CR_ADSTART);
+    // while (READ_BIT(ADC1->ISR, ADC_ISR_EOC) == )
     return 0;
     // uint32_t reg = pin.gpio->
 }

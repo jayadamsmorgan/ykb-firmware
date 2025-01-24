@@ -2,14 +2,14 @@
 #define GPIO_H
 
 #include "stm32wb55xx.h"
-#include "stm32wbxx.h"
 #include <stdbool.h>
 
 // TYPES
-//
+
 typedef struct {
     GPIO_TypeDef *gpio;
     uint8_t num;
+    int8_t adc_chan; // -1 if not available
 } gpio_pin_t;
 
 #define HIGH true
@@ -66,40 +66,40 @@ typedef enum {
 
 // PINS
 
-#define PA0 (gpio_pin_t){.gpio = GPIOA, .num = 0}
-#define PA1 (gpio_pin_t){.gpio = GPIOA, .num = 1}
-#define PA2 (gpio_pin_t){.gpio = GPIOA, .num = 2}
-#define PA3 (gpio_pin_t){.gpio = GPIOA, .num = 3}
-#define PA4 (gpio_pin_t){.gpio = GPIOA, .num = 4}
-#define PA5 (gpio_pin_t){.gpio = GPIOA, .num = 5}
-#define PA6 (gpio_pin_t){.gpio = GPIOA, .num = 6}
-#define PA7 (gpio_pin_t){.gpio = GPIOA, .num = 7}
-#define PA8 (gpio_pin_t){.gpio = GPIOA, .num = 8}
-#define PA9 (gpio_pin_t){.gpio = GPIOA, .num = 9}
-#define PA10 (gpio_pin_t){.gpio = GPIOA, .num = 10}
-#define PA11 (gpio_pin_t){.gpio = GPIOA, .num = 11}
-#define PA12 (gpio_pin_t){.gpio = GPIOA, .num = 12}
-#define PA13 (gpio_pin_t){.gpio = GPIOA, .num = 13}
-#define PA14 (gpio_pin_t){.gpio = GPIOA, .num = 14}
-#define PA15 (gpio_pin_t){.gpio = GPIOA, .num = 15}
+#define PA0 (gpio_pin_t){.gpio = GPIOA, .num = 0, .adc_chan = 5}
+#define PA1 (gpio_pin_t){.gpio = GPIOA, .num = 1, .adc_chan = 6}
+#define PA2 (gpio_pin_t){.gpio = GPIOA, .num = 2, .adc_chan = 7}
+#define PA3 (gpio_pin_t){.gpio = GPIOA, .num = 3, .adc_chan = 8}
+#define PA4 (gpio_pin_t){.gpio = GPIOA, .num = 4, .adc_chan = 9}
+#define PA5 (gpio_pin_t){.gpio = GPIOA, .num = 5, .adc_chan = 10}
+#define PA6 (gpio_pin_t){.gpio = GPIOA, .num = 6, .adc_chan = 11}
+#define PA7 (gpio_pin_t){.gpio = GPIOA, .num = 7, .adc_chan = 12}
+#define PA8 (gpio_pin_t){.gpio = GPIOA, .num = 8, .adc_chan = 15}
+#define PA9 (gpio_pin_t){.gpio = GPIOA, .num = 9, .adc_chan = 16}
+#define PA10 (gpio_pin_t){.gpio = GPIOA, .num = 10, .adc_chan = -1}
+#define PA11 (gpio_pin_t){.gpio = GPIOA, .num = 11, .adc_chan = -1}
+#define PA12 (gpio_pin_t){.gpio = GPIOA, .num = 12, .adc_chan = -1}
+#define PA13 (gpio_pin_t){.gpio = GPIOA, .num = 13, .adc_chan = -1}
+#define PA14 (gpio_pin_t){.gpio = GPIOA, .num = 14, .adc_chan = -1}
+#define PA15 (gpio_pin_t){.gpio = GPIOA, .num = 15, .adc_chan = -1}
 
-#define PB0 (gpio_pin_t){.gpio = GPIOB, .num = 0}
-#define PB1 (gpio_pin_t){.gpio = GPIOB, .num = 1}
-#define PB2 (gpio_pin_t){.gpio = GPIOB, .num = 2}
-#define PB3 (gpio_pin_t){.gpio = GPIOB, .num = 3}
-#define PB4 (gpio_pin_t){.gpio = GPIOB, .num = 4}
-#define PB5 (gpio_pin_t){.gpio = GPIOB, .num = 5}
-#define PB6 (gpio_pin_t){.gpio = GPIOB, .num = 6}
-#define PB7 (gpio_pin_t){.gpio = GPIOB, .num = 7}
-#define PB8 (gpio_pin_t){.gpio = GPIOB, .num = 8}
-#define PB9 (gpio_pin_t){.gpio = GPIOB, .num = 9}
+#define PB0 (gpio_pin_t){.gpio = GPIOB, .num = 0, .adc_chan = -1}
+#define PB1 (gpio_pin_t){.gpio = GPIOB, .num = 1, .adc_chan = -1}
+#define PB2 (gpio_pin_t){.gpio = GPIOB, .num = 2, .adc_chan = -1}
+#define PB3 (gpio_pin_t){.gpio = GPIOB, .num = 3, .adc_chan = -1}
+#define PB4 (gpio_pin_t){.gpio = GPIOB, .num = 4, .adc_chan = -1}
+#define PB5 (gpio_pin_t){.gpio = GPIOB, .num = 5, .adc_chan = -1}
+#define PB6 (gpio_pin_t){.gpio = GPIOB, .num = 6, .adc_chan = -1}
+#define PB7 (gpio_pin_t){.gpio = GPIOB, .num = 7, .adc_chan = -1}
+#define PB8 (gpio_pin_t){.gpio = GPIOB, .num = 8, .adc_chan = -1}
+#define PB9 (gpio_pin_t){.gpio = GPIOB, .num = 9, .adc_chan = -1}
 
-#define PC14 (gpio_pin_t){.gpio = GPIOC, .num = 14}
-#define PC15 (gpio_pin_t){.gpio = GPIOC, .num = 15}
+#define PC14 (gpio_pin_t){.gpio = GPIOC, .num = 14, .adc_chan = -1}
+#define PC15 (gpio_pin_t){.gpio = GPIOC, .num = 15, .adc_chan = -1}
 
-#define PE4 (gpio_pin_t){.gpio = GPIOE, .num = 4}
+#define PE4 (gpio_pin_t){.gpio = GPIOE, .num = 4, .adc_chan = -1}
 
-#define PH3 (gpio_pin_t){.gpio = GPIOH, .num = 3}
+#define PH3 (gpio_pin_t){.gpio = GPIOH, .num = 3, .adc_chan = -1}
 
 // FUNCTIONS
 
