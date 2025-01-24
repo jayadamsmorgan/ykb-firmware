@@ -2,7 +2,9 @@
 #define GPIO_H
 
 #include "stm32wb55xx.h"
+#include <errno.h>
 #include <stdbool.h>
+#include <stdint.h>
 
 // TYPES
 
@@ -64,6 +66,24 @@ typedef enum {
     GPIO_CALIB_INPUT_DIFFERENTIAL,
 } gpio_calib_input_mode;
 
+typedef enum {
+    GPIO_ADC_SMP_2_5_CYCLES = 0b000,
+    GPIO_ADC_SMP_6_5_CYCLES = 0b001,
+    GPIO_ADC_SMP_12_5_CYCLES = 0b010,
+    GPIO_ADC_SMP_24_5_CYCLES = 0b011,
+    GPIO_ADC_SMP_47_5_CYCLES = 0b100,
+    GPIO_ADC_SMP_92_5_CYCLES = 0b101,
+    GPIO_ADC_SMP_247_5_CYCLES = 0b110,
+    GPIO_ADC_SMP_640_5_CYCLES = 0b111,
+} gpio_adc_sampling_time;
+
+typedef enum {
+    GPIO_ADC_RES_12BIT = 0b00,
+    GPIO_ADC_RES_10BIT = 0b01,
+    GPIO_ADC_RES_8BIT = 0b10,
+    GPIO_ADC_RES_6BIT = 0b11,
+} gpio_adc_resolution;
+
 // PINS
 
 #define PA0 (gpio_pin_t){.gpio = GPIOA, .num = 0, .adc_chan = 5}
@@ -76,6 +96,7 @@ typedef enum {
 #define PA7 (gpio_pin_t){.gpio = GPIOA, .num = 7, .adc_chan = 12}
 #define PA8 (gpio_pin_t){.gpio = GPIOA, .num = 8, .adc_chan = 15}
 #define PA9 (gpio_pin_t){.gpio = GPIOA, .num = 9, .adc_chan = 16}
+
 #define PA10 (gpio_pin_t){.gpio = GPIOA, .num = 10, .adc_chan = -1}
 #define PA11 (gpio_pin_t){.gpio = GPIOA, .num = 11, .adc_chan = -1}
 #define PA12 (gpio_pin_t){.gpio = GPIOA, .num = 12, .adc_chan = -1}
@@ -113,12 +134,26 @@ void gpio_set_speed(gpio_pin_t pin, gpio_speed speed);
 
 void gpio_set_output_type(gpio_pin_t pin, gpio_output_type type);
 
+void gpio_adc_start(bool blocking);
+
+void gpio_adc_stop(bool blocking);
+
+// Requires `gpio_adc_end()`
+error_t gpio_adc_calibrate(gpio_calib_input_mode mode, bool blocking,
+                           uint8_t *const calibration_factor);
+
+// Requires `gpio_adc_calibrate()`, `gpio_adc_start()`
+error_t gpio_adc_apply_calibration(gpio_calib_input_mode mode,
+                                   uint8_t calibration_factor);
+
+error_t gpio_adc_set_sampling_time(gpio_pin_t pin, gpio_adc_sampling_time time);
+
+error_t gpio_adc_set_resolution(gpio_adc_resolution resolution);
+
 void gpio_digital_write(gpio_pin_t pin, bool val);
 
 bool gpio_digital_read(gpio_pin_t pin);
 
-void gpio_analog_write(gpio_pin_t pin, uint8_t val);
-
-uint8_t gpio_analog_read(gpio_pin_t pin);
+error_t gpio_analog_read(gpio_pin_t pin, uint32_t *const data);
 
 #endif // GPIO_H

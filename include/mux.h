@@ -45,6 +45,6 @@ void mux_select(uint8_t multiplexor);
 void mux_select_chan(uint8_t channel);
 
 // Read from active channel
-uint8_t mux_read();
+uint32_t mux_read();
 
 #endif // MUX_H
