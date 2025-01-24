@@ -6,7 +6,7 @@ unsigned key_threshold = KB_KEY_THRESHOLD_DEFAULT;
 
 void kb_init() { mux_init(); }
 
-int8_t kb_poll(kb_key_t **pressed) {
+int8_t kb_poll(kb_key_t **const pressed) {
 
     kb_key_t *pressed_keys = malloc(sizeof(kb_key_t) * 36);
 

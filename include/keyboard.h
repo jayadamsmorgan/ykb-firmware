@@ -45,6 +45,6 @@ void set_kb_min_threshold(unsigned threshold);
 //  or -1 if error occured
 //
 // Caller needs to free the passed array once he is done using it.
-int8_t kb_poll(kb_key_t **pressed_keys);
+int8_t kb_poll(kb_key_t **const pressed_keys);
 
 #endif // KEYBOARD_H
