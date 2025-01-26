@@ -1,83 +1,59 @@
 #include "hal/clock.h"
 #include "hal/bits.h"
-#include "stm32wb55xx.h"
 #include "stm32wbxx.h"
-#include <errno.h>
 
-typedef enum {
-    CLOCK_SOURCE_HSI16,
-    CLOCK_SOURCE_HSI48,
-    CLOCK_SOURCE_MSI,
-    CLOCK_SOURCE_HSE32,
-    CLOCK_SOURCE_PLL,
-} clock_source;
+// Global
 
-typedef enum {
-    CLOCK_MSI_100_KHZ = 0b0001,
-    CLOCK_MSI_200_KHZ = 0b0010,
-    CLOCK_MSI_400_KHZ = 0b0011,
-    CLOCK_MSI_800_KHZ = 0b0100,
-    CLOCK_MSI_1_MHZ = 0b0101,
-    CLOCK_MSI_2_MHZ = 0b0110,
-    CLOCK_MSI_4_MHZ = 0b0111,
-    CLOCK_MSI_8_MHZ = 0b1000,
-    CLOCK_MSI_16_MHZ = 0b1001,
-    CLOCK_MSI_24_MHZ = 0b1010,
-    CLOCK_MSI_32_MHZ = 0b1011,
-    CLOCK_MSI_64_MHZ = 0b1100,
-} clock_msi_freq;
-
-error_t clock_msi_select_freq(clock_msi_freq freq) {
-    if (READ_BIT(RCC->CR, RCC_CR_MSION) == 0) {
-        return -1;
-    }
-
-    SET_4BITS(RCC->CR, RCC_CR_MSIRANGE_Pos, freq);
-    return 0;
+void clock_hclk2_set_prescaler(clock_hclk2_prescaler presc) {
+    MODIFY_BITS(RCC->EXTCFGR, RCC_EXTCFGR_C2HPRE_Pos, presc, BITMASK_4BIT);
 }
 
-error_t clock_msi_enable_pll() {
-    if (READ_BIT(RCC->CR, RCC_CR_MSION) == 0) {
-        return -1;
+void clock_select_source(clock_source source) {
+    MODIFY_BITS(RCC->CFGR, RCC_CFGR_SW_Pos, source, BITMASK_2BIT);
+    while (READ_BITS(RCC->CFGR, RCC_CFGR_SWS_Pos, BITMASK_2BIT) != source) {
     }
-
-    SET_BIT(RCC->CR, RCC_CR_MSIPLLEN);
-    return 0;
 }
 
-error_t clock_select_source(clock_source source) {
-    switch (source) {
+void clock_usb_rng_select_source(clock_usb_rng_source source) {
+    MODIFY_BITS(RCC->CCIPR, RCC_CCIPR_CLK48SEL_Pos, source, BITMASK_2BIT);
+}
 
-    case CLOCK_SOURCE_HSI16:
-        if (READ_BIT(RCC->CR, RCC_CR_HSIRDY) == 0) {
-            return -1;
-        }
-        SET_BIT(RCC->CR, RCC_CR_HSION);
-        break;
+// HSE
 
-    case CLOCK_SOURCE_HSI48:
-        if (READ_BIT(RCC->CRRCR, RCC_CRRCR_HSI48RDY) == 0) {
-            return -1;
-        }
-        SET_BIT(RCC->CRRCR, RCC_CRRCR_HSI48ON);
-        break;
-
-    case CLOCK_SOURCE_MSI:
-        if (READ_BIT(RCC->CR, RCC_CR_MSIRDY) == 0) {
-            return -1;
-        }
-        SET_BIT(RCC->CR, RCC_CR_MSION);
-        break;
-
-    case CLOCK_SOURCE_HSE32:
-        if (READ_BIT(RCC->CR, RCC_CR_HSERDY) == 0) {
-            return -1;
-        }
-        SET_BIT(RCC->CR, RCC_CR_HSEON);
-        break;
-
-    case CLOCK_SOURCE_PLL:
-        break;
+void clock_hse_enable() {
+    SET_BIT(RCC->CR, RCC_CR_HSEON);
+    while (READ_BIT(RCC->CR, RCC_CR_HSERDY) == 0) {
+        // Wait for HSE to be ready
     }
-    return 0;
+}
+
+// PLL
+
+void clock_pll_config(clock_pllm pllm, clock_plln plln, clock_pllq pllq,
+                      clock_pllr pllr, clock_pll_source source) {
+
+    uint32_t pll_cfgr = 0;
+
+    if (pllq != CLOCK_PLLQ_NONE) {
+        pll_cfgr |= RCC_PLLCFGR_PLLQEN | pllq << RCC_PLLCFGR_PLLQ_Pos;
+    }
+
+    if (pllr != CLOCK_PLLR_NONE) {
+        pll_cfgr |= RCC_PLLCFGR_PLLREN | pllr << RCC_PLLCFGR_PLLR_Pos;
+    }
+
+    pll_cfgr |= plln << RCC_PLLCFGR_PLLN_Pos;
+
+    pll_cfgr |= pllm << RCC_PLLCFGR_PLLM_Pos;
+
+    pll_cfgr |= source << RCC_PLLCFGR_PLLSRC_Pos;
+
+    WRITE_REG(RCC->PLLCFGR, pll_cfgr);
+}
+
+void clock_pll_enable() {
+    SET_BIT(RCC->CR, RCC_CR_PLLON);
+    while (READ_BIT(RCC->CR, RCC_CR_PLLRDY) == 0) {
+        // Wait for PLL to be ready
+    }
 }

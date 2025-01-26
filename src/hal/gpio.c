@@ -4,28 +4,60 @@
 
 static gpio_adc_resolution seleceted_adc_res = GPIO_ADC_RES_12BIT;
 
+void gpio_turn_on_port(volatile GPIO_TypeDef *port) {
+    if (port == GPIOA) {
+        SET_BIT(RCC->AHB2ENR, RCC_AHB2ENR_GPIOAEN);
+    } else if (port == GPIOB) {
+        SET_BIT(RCC->AHB2ENR, RCC_AHB2ENR_GPIOBEN);
+    } else if (port == GPIOC) {
+        SET_BIT(RCC->AHB2ENR, RCC_AHB2ENR_GPIOCEN);
+    } else if (port == GPIOD) {
+        SET_BIT(RCC->AHB2ENR, RCC_AHB2ENR_GPIODEN);
+    } else if (port == GPIOE) {
+        SET_BIT(RCC->AHB2ENR, RCC_AHB2ENR_GPIOEEN);
+    } else if (port == GPIOH) {
+        SET_BIT(RCC->AHB2ENR, RCC_AHB2ENR_GPIOHEN);
+    }
+}
+
+void gpio_turn_off_port(volatile GPIO_TypeDef *port) {
+    if (port == GPIOA) {
+        CLEAR_BIT(RCC->AHB2ENR, RCC_AHB2ENR_GPIOAEN);
+    } else if (port == GPIOB) {
+        CLEAR_BIT(RCC->AHB2ENR, RCC_AHB2ENR_GPIOBEN);
+    } else if (port == GPIOC) {
+        CLEAR_BIT(RCC->AHB2ENR, RCC_AHB2ENR_GPIOCEN);
+    } else if (port == GPIOD) {
+        CLEAR_BIT(RCC->AHB2ENR, RCC_AHB2ENR_GPIODEN);
+    } else if (port == GPIOE) {
+        CLEAR_BIT(RCC->AHB2ENR, RCC_AHB2ENR_GPIOEEN);
+    } else if (port == GPIOH) {
+        CLEAR_BIT(RCC->AHB2ENR, RCC_AHB2ENR_GPIOHEN);
+    }
+}
+
 void gpio_set_mode(gpio_pin_t pin, gpio_mode mode) {
-    SET_2BITS(pin.gpio->MODER, pin.num * 2, mode);
+    MODIFY_BITS(pin.gpio->MODER, pin.num * 2, mode, BITMASK_2BIT);
 }
 
 void gpio_set_af_mode(gpio_pin_t pin, gpio_af_mode mode) {
     if (pin.num > 7) {
-        SET_4BITS(pin.gpio->AFR[1], (pin.num - 8) * 4, mode);
+        MODIFY_BITS(pin.gpio->AFR[1], (pin.num - 8) * 4, mode, BITMASK_4BIT);
     } else {
-        SET_4BITS(pin.gpio->AFR[0], pin.num * 4, mode);
+        MODIFY_BITS(pin.gpio->AFR[0], pin.num * 4, mode, BITMASK_4BIT);
     }
 }
 
 void gpio_set_pupd(gpio_pin_t pin, gpio_pupd pupd) {
-    SET_2BITS(pin.gpio->PUPDR, pin.num * 2, pupd);
+    MODIFY_BITS(pin.gpio->PUPDR, pin.num * 2, pupd, BITMASK_2BIT);
 }
 
 void gpio_set_speed(gpio_pin_t pin, gpio_speed speed) {
-    SET_2BITS(pin.gpio->OSPEEDR, pin.num * 2, speed);
+    MODIFY_BITS(pin.gpio->OSPEEDR, pin.num * 2, speed, BITMASK_2BIT);
 }
 
 void gpio_set_output_type(gpio_pin_t pin, gpio_output_type type) {
-    SET_1BIT(pin.gpio->OTYPER, pin.num, type);
+    MODIFY_BITS(pin.gpio->OTYPER, pin.num, type, BITMASK_1BIT);
 }
 
 void gpio_adc_start(bool blocking) {
@@ -83,7 +115,6 @@ error_t gpio_adc_calibrate(gpio_calib_input_mode mode, bool blocking,
     }
 
     while (READ_BIT(ADC1->CR, ADC_CR_ADCAL) == 1) {
-        asm("nop"); // TODO: Not sure.
     }
 
     if (!calibration_factor) {
@@ -94,12 +125,12 @@ error_t gpio_adc_calibrate(gpio_calib_input_mode mode, bool blocking,
 
     case GPIO_CALIB_INPUT_SINGLE_ENDED:
         *calibration_factor =
-            (ADC1->CALFACT >> ADC_CALFACT_CALFACT_S_Pos) & 0b1111111;
+            (ADC1->CALFACT >> ADC_CALFACT_CALFACT_S_Pos) & BITMASK_7BIT;
         break;
 
     case GPIO_CALIB_INPUT_DIFFERENTIAL:
         *calibration_factor =
-            (ADC1->CALFACT >> ADC_CALFACT_CALFACT_D_Pos) & 0b1111111;
+            (ADC1->CALFACT >> ADC_CALFACT_CALFACT_D_Pos) & BITMASK_7BIT;
         break;
     }
 
@@ -118,13 +149,11 @@ error_t gpio_adc_apply_calibration(gpio_calib_input_mode mode,
         return -4;
     }
     if (mode == GPIO_CALIB_INPUT_DIFFERENTIAL) {
-        MODIFY_REG(ADC1->CALFACT, ADC_CALFACT_CALFACT_D,
-                   (calibration_factor & 0b1111111)
-                       << ADC_CALFACT_CALFACT_D_Pos);
+        MODIFY_BITS(ADC1->CALFACT, ADC_CALFACT_CALFACT_D_Pos,
+                    calibration_factor, BITMASK_7BIT);
     } else {
-        MODIFY_REG(ADC1->CALFACT, ADC_CALFACT_CALFACT_S,
-                   (calibration_factor & 0b1111111)
-                       << ADC_CALFACT_CALFACT_S_Pos);
+        MODIFY_BITS(ADC1->CALFACT, ADC_CALFACT_CALFACT_S_Pos,
+                    calibration_factor, BITMASK_7BIT);
     }
     return 0;
 }
@@ -137,13 +166,14 @@ error_t gpio_adc_set_sampling_time(gpio_pin_t pin,
     if (pin.adc_chan > 18) {
         return -2;
     }
-    if (READ_2BITS(pin.gpio->MODER, pin.num * 2) != GPIO_MODE_ANALOG) {
+    if (READ_BITS(pin.gpio->MODER, pin.num * 2, BITMASK_2BIT) !=
+        GPIO_MODE_ANALOG) {
         return -3;
     }
     if (pin.adc_chan > 9) {
-        SET_3BITS(ADC1->SMPR2, (pin.adc_chan - 10) * 3, time);
+        MODIFY_BITS(ADC1->SMPR2, (pin.adc_chan - 10) * 3, time, BITMASK_3BIT);
     } else {
-        SET_3BITS(ADC1->SMPR1, pin.adc_chan * 3, time);
+        MODIFY_BITS(ADC1->SMPR1, pin.adc_chan * 3, time, BITMASK_3BIT);
     }
     return 0;
 }
@@ -157,14 +187,14 @@ error_t gpio_adc_set_resolution(gpio_adc_resolution resolution) {
         return -2;
     }
 
-    SET_2BITS(ADC1->CFGR, ADC_CFGR_RES_Pos, resolution);
+    MODIFY_BITS(ADC1->CFGR, ADC_CFGR_RES_Pos, resolution, BITMASK_2BIT);
     seleceted_adc_res = resolution;
 
     return 0;
 }
 
 void gpio_digital_write(gpio_pin_t pin, bool val) {
-    SET_1BIT(pin.gpio->ODR, pin.num, val);
+    MODIFY_BITS(pin.gpio->ODR, pin.num, val, BITMASK_1BIT);
 }
 
 bool gpio_digital_read(gpio_pin_t pin) {
@@ -185,7 +215,6 @@ error_t gpio_analog_read(gpio_pin_t pin, uint32_t *const data) {
 
     SET_BIT(ADC1->CR, ADC_CR_ADSTART);
     while (READ_BIT(ADC1->ISR, ADC_ISR_EOC) == 0) {
-        asm("nop");
     }
 
     if (!data) {
@@ -196,19 +225,19 @@ error_t gpio_analog_read(gpio_pin_t pin, uint32_t *const data) {
     switch (seleceted_adc_res) {
 
     case GPIO_ADC_RES_12BIT:
-        *data = READ_REG(ADC1->DR) & 12U;
+        *data = READ_REG(ADC1->DR) & BITMASK_12BIT;
         break;
 
     case GPIO_ADC_RES_10BIT:
-        *data = READ_REG(ADC1->DR) & 10U;
+        *data = READ_REG(ADC1->DR) & BITMASK_10BIT;
         break;
 
     case GPIO_ADC_RES_8BIT:
-        *data = READ_REG(ADC1->DR) & 8U;
+        *data = READ_REG(ADC1->DR) & BITMASK_8BIT;
         break;
 
     case GPIO_ADC_RES_6BIT:
-        *data = READ_REG(ADC1->DR) & 6U;
+        *data = READ_REG(ADC1->DR) & BITMASK_6BIT;
         break;
     }
 

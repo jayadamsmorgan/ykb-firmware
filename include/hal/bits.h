@@ -1,42 +1,26 @@
 #ifndef BITS_H
 #define BITS_H
 
-#define SET_1BIT(REG, OFFSET, VALUE)                                           \
+#define BITMASK_1BIT 1U
+#define BITMASK_2BIT 3U
+#define BITMASK_3BIT 7U
+#define BITMASK_4BIT 15U
+#define BITMASK_5BIT 32U
+#define BITMASK_6BIT 63U
+#define BITMASK_7BIT 127U
+#define BITMASK_8BIT 255U
+
+#define BITMASK_10BIT 1024U
+#define BITMASK_12BIT 4096U
+
+#define READ_BITS(REG, OFFSET, BITMASK) ((REG >> (OFFSET)) & BITMASK)
+
+#define MODIFY_BITS(REG, OFFSET, VALUE, BITMASK)                               \
     do {                                                                       \
         uint32_t reg = REG;                                                    \
-        reg &= ~(1U << OFFSET);                                                \
-        reg |= (VALUE & 1U) << OFFSET;                                         \
+        reg &= ~(BITMASK << (OFFSET));                                         \
+        reg |= ((VALUE & BITMASK) << (OFFSET));                                \
         REG = reg;                                                             \
     } while (0)
-
-#define SET_2BITS(REG, OFFSET, VALUE)                                          \
-    do {                                                                       \
-        uint32_t reg = REG;                                                    \
-        reg &= ~(2U << (OFFSET * 2));                                          \
-        reg |= (VALUE & 2U) << (OFFSET * 2);                                   \
-        REG = reg;                                                             \
-    } while (0)
-
-#define READ_2BITS(REG, OFFSET) ((REG >> (OFFSET)) & 2U)
-
-#define SET_3BITS(REG, OFFSET, VALUE)                                          \
-    do {                                                                       \
-        uint32_t reg = REG;                                                    \
-        reg &= ~(3U << (OFFSET * 3));                                          \
-        reg |= (VALUE & 3U) << (OFFSET * 3);                                   \
-        REG = reg;                                                             \
-    } while (0)
-
-#define READ_3BITS(REG, OFFSET) ((REG >> (OFFSET)) & 3U)
-
-#define SET_4BITS(REG, OFFSET, VALUE)                                          \
-    do {                                                                       \
-        uint32_t reg = REG;                                                    \
-        reg &= ~(4U << (OFFSET * 4));                                          \
-        reg |= (VALUE & 4U) << (OFFSET * 4);                                   \
-        REG = reg;                                                             \
-    } while (0)
-
-#define READ_4BITS(REG, OFFSET) ((REG >> (OFFSET)) & 4U)
 
 #endif // BITS_H

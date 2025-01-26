@@ -1,6 +1,4 @@
 #include "neopixels.h"
-#include "stm32wbxx.h"
-#include "sysTick.h"
 #include <math.h>
 
 #define PA5_AF_MODE (1 << 11)

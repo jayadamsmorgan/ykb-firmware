@@ -108,7 +108,7 @@ $(DEBUG_DIR)/%.o: %.c
 # Compile the startup .S in debug mode
 $(DEBUG_STARTUP_OBJ): $(STARTUP_S)
 	@mkdir -p $(dir $@)
-	$(CC) $(COMMON_FLAGS) $(DEBUG_CFLAGS) -c -x assembler-with-cpp $< -o $@
+	$(CC) $(COMMON_FLAGS) $(DEBUG_CFLAGS) -c $< -o $@
 
 ###############################################################################
 # Release Build
@@ -127,7 +127,7 @@ $(RELEASE_DIR)/%.o: %.c
 # Compile the startup .S in release mode
 $(RELEASE_STARTUP_OBJ): $(STARTUP_S)
 	@mkdir -p $(dir $@)
-	$(CC) $(COMMON_FLAGS) $(RELEASE_CFLAGS) -c -x assembler-with-cpp $< -o $@
+	$(CC) $(COMMON_FLAGS) $(RELEASE_CFLAGS) -c $< -o $@
 
 ###############################################################################
 # Copy / Rename Startup File
@@ -169,11 +169,11 @@ stflash-debug: $(DEBUG_DIR)/$(PROJECT_NAME).bin
 
 dfuflash: $(RELEASE_DIR)/$(PROJECT_NAME).bin
 	@echo "Flashing via dfu-util..."
-	dfu-util -D $< -n 26 -a 0
+	dfu-util -D $< -a 0 -s 0x08000000
 
 dfuflash-debug: $(DEBUG_DIR)/$(PROJECT_NAME).bin
 	@echo "Flashing via dfu-util..."
-	dfu-util -D $< -n 26 -a 0
+	dfu-util -D $< -a 0 -s 0x08000000
 
 ###############################################################################
 # Clean

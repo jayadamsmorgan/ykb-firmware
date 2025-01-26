@@ -4,12 +4,11 @@
 #include "stm32wb55xx.h"
 #include <errno.h>
 #include <stdbool.h>
-#include <stdint.h>
 
 // TYPES
 
 typedef struct {
-    GPIO_TypeDef *gpio;
+    volatile GPIO_TypeDef *gpio;
     uint8_t num;
     int8_t adc_chan; // -1 if not available
 } gpio_pin_t;
@@ -123,6 +122,10 @@ typedef enum {
 #define PH3 (gpio_pin_t){.gpio = GPIOH, .num = 3, .adc_chan = -1}
 
 // FUNCTIONS
+
+void gpio_turn_on_port(volatile GPIO_TypeDef *port);
+
+void gpio_turn_off_port(volatile GPIO_TypeDef *port);
 
 void gpio_set_mode(gpio_pin_t pin, gpio_mode mode);
 
