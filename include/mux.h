@@ -2,49 +2,20 @@
 #define MUX_H
 
 #include "hal/gpio.h"
+#include "stdint.h"
 
-#ifndef PIN_MUX_0
-#define PIN_MUX_0 PA0
-#endif // PIN_MUX_0
-
-#ifndef PIN_MUX_1
-#define PIN_MUX_1 PA1
-#endif // PIN_MUX_1
-
-#ifndef PIN_MUX_2
-#define PIN_MUX_2 PA2
-#endif // PIN_MUX_2
-
-#ifndef PIN_MUX_CHAN_A
-#define PIN_MUX_CHAN_A PA3
-#endif // PIN_MUX_CHAN_A
-
-#ifndef PIN_MUX_CHAN_B
-#define PIN_MUX_CHAN_B PA4
-#endif // PIN_MUX_CHAN_B
-
-#ifndef PIN_MUX_CHAN_C
-#define PIN_MUX_CHAN_C PA5
-#endif // PIN_MUX_CHAN_C
-
-#ifndef PIN_MUX_CHAN_D
-#define PIN_MUX_CHAN_D PA6
-#endif // PIN_MUX_CHAN_D
-
-#ifndef PIN_MUX_INPUT
-#define PIN_MUX_INPUT PA7
-#endif // PIN_MUX_INPUT
+typedef struct {
+    gpio_pin_t ctrl[4];
+    gpio_pin_t common;
+} mux_t;
 
 // Initialize multiplexors.
-void mux_init();
-
-// Select active multiplexor with MOSFETs
-void mux_select(uint8_t multiplexor);
+void mux_init(const mux_t *const mux);
 
 // Select active channel on active multiplexor
-void mux_select_chan(uint8_t channel);
+void mux_select_chan(const mux_t *const mux, uint8_t channel);
 
 // Read from active channel
-uint32_t mux_read();
+int32_t mux_read(const mux_t *const mux);
 
 #endif // MUX_H

@@ -60,13 +60,9 @@ void gpio_set_output_type(gpio_pin_t pin, gpio_output_type type) {
     MODIFY_BITS(pin.gpio->OTYPER, pin.num, type, BITMASK_1BIT);
 }
 
-void gpio_adc_start(bool blocking) {
+void gpio_adc_start() {
     CLEAR_BIT(ADC1->ISR, ADC_ISR_ADRDY);
     SET_BIT(ADC1->CR, ADC_CR_ADEN);
-
-    if (!blocking) {
-        return;
-    }
 
     while (READ_BIT(ADC1->ISR, ADC_ISR_ADRDY) == 0) {
     }
@@ -74,7 +70,7 @@ void gpio_adc_start(bool blocking) {
     CLEAR_BIT(ADC1->ISR, ADC_ISR_ADRDY);
 }
 
-void gpio_adc_stop(bool blocking) {
+void gpio_adc_stop() {
     SET_BIT(ADC1->CR, ADC_CR_ADSTP);
     SET_BIT(ADC1->CR, ADC_CR_JADSTP);
 
@@ -83,15 +79,11 @@ void gpio_adc_stop(bool blocking) {
     }
     SET_BIT(ADC1->CR, ADC_CR_ADDIS);
 
-    if (!blocking) {
-        return;
-    }
-
     while (READ_BIT(ADC1->CR, ADC_CR_ADEN)) {
     }
 }
 
-error_t gpio_adc_calibrate(gpio_calib_input_mode mode, bool blocking,
+error_t gpio_adc_calibrate(gpio_calib_input_mode mode,
                            uint8_t *const calibration_factor) {
 
     if (READ_BIT(ADC1->CR, ADC_CR_DEEPPWD) == 1) {
@@ -109,10 +101,6 @@ error_t gpio_adc_calibrate(gpio_calib_input_mode mode, bool blocking,
     }
 
     SET_BIT(ADC1->CR, ADC_CR_ADCAL);
-
-    if (!blocking && !calibration_factor) {
-        return 0;
-    }
 
     while (READ_BIT(ADC1->CR, ADC_CR_ADCAL) == 1) {
     }

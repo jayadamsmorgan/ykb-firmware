@@ -1,12 +1,91 @@
 #include "keyboard.h"
 #include "mux.h"
+#include "pinout.h"
+#include "settings.h"
 #include <stdlib.h>
 
-unsigned key_threshold = KB_KEY_THRESHOLD_DEFAULT;
+//
+// KB Settings
+static uint16_t key_threshold = KB_KEY_THRESHOLD_DEFAULT;
 
-void kb_init() { mux_init(); }
+static kb_mode mode = KB_MODE_NORMAL;
 
-int8_t kb_poll(kb_key_t **const pressed) {
+//
+// MUXes
+static mux_t mux1 = {.ctrl = {PIN_MUX1_A, PIN_MUX1_B, PIN_MUX1_C, PIN_MUX1_D},
+                     .common = PIN_MUX1_IN};
+
+static mux_t mux2 = {.ctrl = {PIN_MUX2_A, PIN_MUX2_B, PIN_MUX2_C, PIN_MUX2_D},
+                     .common = PIN_MUX2_IN};
+
+static mux_t mux3 = {.ctrl = {PIN_MUX3_A, PIN_MUX3_B, PIN_MUX3_C, PIN_MUX3_D},
+                     .common = PIN_MUX3_IN};
+
+void kb_init() {
+    mux_init(&mux1);
+    mux_init(&mux2);
+    mux_init(&mux3);
+}
+
+kb_mode kb_get_mode() { return mode; }
+
+void kb_set_mode(kb_mode new_mode) { mode = new_mode; }
+
+uint32_t kb_get_min_threshold() { return key_threshold; }
+
+void kb_set_min_threshold(uint32_t threshold) { key_threshold = threshold; }
+
+static inline error_t kb_key_pressed_by_threshold(const mux_t *const mux,
+                                                  uint8_t channel,
+                                                  uint16_t *const value) {
+    mux_select_chan(mux, channel);
+    uint32_t mux_value = mux_read(mux);
+    if (mux_value < 0) {
+        // TODO: error occured, debug it to serial
+        return mux_value;
+    }
+    if (value) {
+        *value = mux_value;
+    }
+    return mux_value > key_threshold;
+}
+
+void kb_poll_race(kb_key_t *pressed_key) {
+    if (!pressed_key) {
+        return;
+    }
+    kb_key_t pressed;
+    for (uint8_t i = 0; i < MUX1_KEY_COUNT; i++) {
+        uint16_t temp;
+        if (kb_key_pressed_by_threshold(&mux1, i, &temp) && temp) {
+            if (pressed.value < temp) {
+                pressed = (kb_key_t){.value = temp, .num = i};
+            }
+        }
+    }
+    for (uint8_t i = 0; i < MUX2_KEY_COUNT; i++) {
+        uint16_t temp;
+        if (kb_key_pressed_by_threshold(&mux2, i, &temp) && temp) {
+            if (pressed.value < temp) {
+                pressed = (kb_key_t){.value = temp, .num = MUX1_KEY_COUNT + i};
+            }
+        }
+    }
+    for (uint8_t i = 0; i < MUX3_KEY_COUNT; i++) {
+        uint16_t temp;
+        if (kb_key_pressed_by_threshold(&mux1, i, &temp) && temp) {
+            if (pressed.value < temp) {
+                pressed = (kb_key_t){
+                    .value = temp, .num = MUX1_KEY_COUNT + MUX2_KEY_COUNT + i};
+            }
+        }
+    }
+    if (pressed.value != 0) {
+        *pressed_key = pressed;
+    }
+}
+
+int8_t kb_poll_normal(kb_key_t **const pressed) {
 
     kb_key_t *pressed_keys = malloc(sizeof(kb_key_t) * 36);
 
@@ -16,24 +95,23 @@ int8_t kb_poll(kb_key_t **const pressed) {
 
     uint8_t pressed_amount = 0;
 
-    for (uint8_t i = 0; i < 3; i++) {
-
-        mux_select(i);
-
-        for (uint8_t j = 0; j < 12; j++) {
-
-            mux_select_chan(j);
-
-            uint8_t value = mux_read();
-
-            if (value < key_threshold) {
-                continue;
-            }
-
-            uint8_t num = (uint8_t)(i * 12) + j;
-
+    for (uint8_t i = 0; i < MUX1_KEY_COUNT; i++) {
+        if (kb_key_pressed_by_threshold(&mux1, i, NULL)) {
             pressed_keys[pressed_amount++] =
-                (kb_key_t){.num = num, .value = value};
+                (kb_key_t){.num = i, .value = key_threshold};
+        }
+    }
+    for (uint8_t i = 0; i < MUX2_KEY_COUNT; i++) {
+        if (kb_key_pressed_by_threshold(&mux2, i, NULL)) {
+            pressed_keys[pressed_amount++] =
+                (kb_key_t){.num = MUX1_KEY_COUNT + i, .value = key_threshold};
+        }
+    }
+    for (uint8_t i = 0; i < MUX1_KEY_COUNT; i++) {
+        if (kb_key_pressed_by_threshold(&mux1, i, NULL)) {
+            pressed_keys[pressed_amount++] =
+                (kb_key_t){.num = MUX1_KEY_COUNT + MUX2_KEY_COUNT + i,
+                           .value = key_threshold};
         }
     }
 

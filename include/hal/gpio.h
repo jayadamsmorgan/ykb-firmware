@@ -137,12 +137,12 @@ void gpio_set_speed(gpio_pin_t pin, gpio_speed speed);
 
 void gpio_set_output_type(gpio_pin_t pin, gpio_output_type type);
 
-void gpio_adc_start(bool blocking);
+void gpio_adc_start();
 
-void gpio_adc_stop(bool blocking);
+void gpio_adc_stop();
 
 // Requires `gpio_adc_end()`
-error_t gpio_adc_calibrate(gpio_calib_input_mode mode, bool blocking,
+error_t gpio_adc_calibrate(gpio_calib_input_mode mode,
                            uint8_t *const calibration_factor);
 
 // Requires `gpio_adc_calibrate()`, `gpio_adc_start()`
