@@ -13,11 +13,12 @@ SIZE     = arm-none-eabi-size
 ###############################################################################
 # Directories
 ###############################################################################
-SRC_DIR     = src
-INC_DIR     = include
-BUILD_DIR   = build
-DEBUG_DIR   = $(BUILD_DIR)/debug
-RELEASE_DIR = $(BUILD_DIR)/release
+SRC_DIR        = src
+INC_DIR        = include
+CONFIG_INC_DIR = $(INC_DIR)/config
+BUILD_DIR      = build
+DEBUG_DIR      = $(BUILD_DIR)/debug
+RELEASE_DIR    = $(BUILD_DIR)/release
 
 # CMSIS / Device-Specific
 CMSIS_INC_DIR        = CMSIS_5/CMSIS/Core/Include
@@ -64,10 +65,17 @@ RELEASE_STARTUP_OBJ = $(RELEASE_DIR)/startup_stm32wb55xx_cm4.o
 ###############################################################################
 # Compiler/Linker Flags
 ###############################################################################
-COMMON_FLAGS = -Wall -Wextra -Werror -std=gnu2x -mlittle-endian -mthumb -mthumb-interwork \
-               -mfloat-abi=hard -mfpu=fpv4-sp-d16 -mcpu=$(MCU) \
-               -I$(INC_DIR) -I$(CMSIS_INC_DIR) -I$(CMSIS_DEVICE_INC_DIR) -I$(TINYUSB_DIR) \
-               -D$(BOARD)
+INCLUDES = -I$(INC_DIR) \
+		   -I$(CONFIG_INC_DIR) \
+		   -I$(CMSIS_INC_DIR) \
+		   -I$(CMSIS_DEVICE_INC_DIR) \
+		   -I$(TINYUSB_DIR)
+
+COMMON_FLAGS = -Wall -Wextra -Werror \
+			   -std=gnu2x \
+			   -mlittle-endian -mthumb -mthumb-interwork \
+               -mfloat-abi=hard -mfpu=fpv4-sp-d16 -mcpu=$(MCU) -D$(BOARD) \
+			   $(INCLUDES)
 
 # Use '--specs=nosys.specs' so we don't depend on newlib syscalls
 LDFLAGS = -T $(LD_SCRIPT) --specs=nosys.specs

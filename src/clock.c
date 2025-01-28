@@ -1,4 +1,5 @@
 #include "clock.h"
+
 #include "hal/clock.h"
 #include "hal/flash.h"
 #include "stm32wbxx.h"

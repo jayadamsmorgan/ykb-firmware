@@ -1,4 +1,5 @@
 #include "mux.h"
+
 #include "hal/bits.h"
 
 void mux_init(const mux_t *const mux) {

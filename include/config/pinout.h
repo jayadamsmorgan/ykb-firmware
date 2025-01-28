@@ -1,5 +1,5 @@
-#ifndef PINOUT_H
-#define PINOUT_H
+#ifndef CONFIG_PINOUT_H
+#define CONFIG_PINOUT_H
 
 #include "hal/gpio.h"
 
@@ -79,4 +79,4 @@
 #define PIN_USB_DPLUS PA12
 #endif // !PIN_USB_DPLUS
 
-#endif // PINOUT_H
+#endif // CONFIG_PINOUT_H
