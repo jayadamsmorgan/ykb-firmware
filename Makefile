@@ -47,6 +47,8 @@ SRCS = $(shell find $(SRC_DIR) -type f -name '*.c')
 SRCS += $(SYSTEM)
 SRCS += $(shell find $(TINYUSB_DIR) -type f -name '*.c')
 
+HEADERS = $(shell find $(INC_DIR) -type f -name '*.h')
+
 ###############################################################################
 # Object Files
 ###############################################################################
@@ -78,7 +80,7 @@ RELEASE_CFLAGS = -O2
 ###############################################################################
 # Top-Level Targets
 ###############################################################################
-.PHONY: all debug release clean stflash dfuflash size help
+.PHONY: clean stflash dfuflash size help
 
 # By default, build debug
 all: debug
@@ -105,7 +107,7 @@ $(DEBUG_DIR)/$(PROJECT_NAME).elf: $(DEBUG_OBJS) $(DEBUG_STARTUP_OBJ)
 	$(CC) $(COMMON_FLAGS) $(DEBUG_CFLAGS) $^ -o $@ $(LDFLAGS)
 
 # Pattern rule for building .o from .c (Debug)
-$(DEBUG_DIR)/%.o: %.c
+$(DEBUG_DIR)/%.o: %.c $(HEADERS)
 	@mkdir -p $(dir $@)
 	$(CC) $(COMMON_FLAGS) $(DEBUG_CFLAGS) -c $< -o $@
 
@@ -124,7 +126,7 @@ $(RELEASE_DIR)/$(PROJECT_NAME).elf: $(RELEASE_OBJS) $(RELEASE_STARTUP_OBJ)
 	$(CC) $(COMMON_FLAGS) $(RELEASE_CFLAGS) $^ -o $@ $(LDFLAGS)
 
 # Pattern rule for building .o from .c (Release)
-$(RELEASE_DIR)/%.o: %.c
+$(RELEASE_DIR)/%.o: %.c $(HEADERS)
 	@mkdir -p $(dir $@)
 	$(CC) $(COMMON_FLAGS) $(RELEASE_CFLAGS) -c $< -o $@
 
