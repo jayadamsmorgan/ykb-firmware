@@ -61,6 +61,7 @@ void gpio_set_output_type(gpio_pin_t pin, gpio_output_type type) {
 }
 
 void gpio_adc_start() {
+    SET_BIT(RCC->AHB2ENR, RCC_AHB2ENR_ADCEN);
     CLEAR_BIT(ADC1->ISR, ADC_ISR_ADRDY);
     SET_BIT(ADC1->CR, ADC_CR_ADEN);
 
@@ -81,6 +82,7 @@ void gpio_adc_stop() {
 
     while (READ_BIT(ADC1->CR, ADC_CR_ADEN)) {
     }
+    CLEAR_BIT(RCC->AHB2ENR, RCC_AHB2ENR_ADCEN);
 }
 
 error_t gpio_adc_calibrate(gpio_calib_input_mode mode,

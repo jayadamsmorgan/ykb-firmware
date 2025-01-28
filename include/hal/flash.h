@@ -1,5 +1,5 @@
-#ifndef FLASH_H
-#define FLASH_H
+#ifndef HAL_FLASH_H
+#define HAL_FLASH_H
 
 typedef enum {
     FLASH_LATENCY_ZERO_WAIT = 0U,
@@ -10,4 +10,4 @@ typedef enum {
 
 void flash_select_latency(flash_latency latency);
 
-#endif // FLASH_H
+#endif // HAL_FLASH_H

@@ -1,5 +1,5 @@
-#ifndef CLOCK_H
-#define CLOCK_H
+#ifndef HAL_CLOCK_H
+#define HAL_CLOCK_H
 
 typedef enum {
     CLOCK_SOURCE_MSI = 0U,
@@ -211,4 +211,4 @@ void clock_pll_config(clock_pllm pllm, clock_plln plln, clock_pllq pllq,
                       clock_pllr pllr, clock_pll_source source);
 void clock_pll_enable();
 
-#endif // CLOCK_H
+#endif // HAL_CLOCK_H

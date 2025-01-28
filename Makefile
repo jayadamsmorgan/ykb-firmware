@@ -26,6 +26,9 @@ STARTUP_SRC          = cmsis-device-wb/Source/Templates/gcc/startup_stm32wb55xx_
 SYSTEM               = cmsis-device-wb/Source/Templates/system_stm32wbxx.c
 LD_SCRIPT            = cmsis-device-wb/Source/Templates/gcc/linker/stm32wb55xx_flash_cm4.ld
 
+# TinyUSB library
+TINYUSB_DIR = tinyusb/src
+
 # We will copy (rename) the startup .s file into the build directory as .S
 STARTUP_S = $(BUILD_DIR)/startup_stm32wb55xx_cm4.S
 
@@ -42,6 +45,7 @@ MCU   = cortex-m4
 # (Remove the startup .s from the normal SRCS, since we handle it separately)
 SRCS = $(shell find $(SRC_DIR) -type f -name '*.c')
 SRCS += $(SYSTEM)
+SRCS += $(shell find $(TINYUSB_DIR) -type f -name '*.c')
 
 ###############################################################################
 # Object Files
@@ -60,7 +64,7 @@ RELEASE_STARTUP_OBJ = $(RELEASE_DIR)/startup_stm32wb55xx_cm4.o
 ###############################################################################
 COMMON_FLAGS = -Wall -Werror -mlittle-endian -mthumb -mthumb-interwork \
                -mfloat-abi=hard -mfpu=fpv4-sp-d16 -mcpu=$(MCU) \
-               -I$(INC_DIR) -I$(CMSIS_INC_DIR) -I$(CMSIS_DEVICE_INC_DIR) \
+               -I$(INC_DIR) -I$(CMSIS_INC_DIR) -I$(CMSIS_DEVICE_INC_DIR) -I$(TINYUSB_DIR) \
                -D$(BOARD)
 
 # Use '--specs=nosys.specs' so we don't depend on newlib syscalls

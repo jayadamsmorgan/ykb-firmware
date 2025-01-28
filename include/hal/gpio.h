@@ -1,7 +1,7 @@
-#ifndef GPIO_H
-#define GPIO_H
+#ifndef HAL_GPIO_H
+#define HAL_GPIO_H
 
-#include "stm32wb55xx.h"
+#include "stm32wbxx.h"
 #include <errno.h>
 #include <stdbool.h>
 
@@ -159,4 +159,4 @@ bool gpio_digital_read(gpio_pin_t pin);
 
 error_t gpio_analog_read(gpio_pin_t pin, uint32_t *const data);
 
-#endif // GPIO_H
+#endif // HAL_GPIO_H

@@ -1,5 +1,5 @@
-#ifndef BITS_H
-#define BITS_H
+#ifndef HAL_BITS_H
+#define HAL_BITS_H
 
 #define BITMASK_1BIT 1U
 #define BITMASK_2BIT 3U
@@ -23,4 +23,4 @@
         REG = reg;                                                             \
     } while (0)
 
-#endif // BITS_H
+#endif // HAL_BITS_H
