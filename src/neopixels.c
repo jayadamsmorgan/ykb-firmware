@@ -48,7 +48,7 @@ void dma_init() {
     // NVIC_EnableIRQ(DMA1_Stream5_IRQn);
 };
 
-void updateStrip(LedStrip *strip) {
+void updateStrip(LedStrip *) {
     // uint32_t color;
     // uint32_t buffer[24];
     //

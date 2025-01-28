@@ -64,7 +64,7 @@ RELEASE_STARTUP_OBJ = $(RELEASE_DIR)/startup_stm32wb55xx_cm4.o
 ###############################################################################
 # Compiler/Linker Flags
 ###############################################################################
-COMMON_FLAGS = -Wall -Werror -mlittle-endian -mthumb -mthumb-interwork \
+COMMON_FLAGS = -Wall -Wextra -Werror -std=gnu2x -mlittle-endian -mthumb -mthumb-interwork \
                -mfloat-abi=hard -mfpu=fpv4-sp-d16 -mcpu=$(MCU) \
                -I$(INC_DIR) -I$(CMSIS_INC_DIR) -I$(CMSIS_DEVICE_INC_DIR) -I$(TINYUSB_DIR) \
                -D$(BOARD)

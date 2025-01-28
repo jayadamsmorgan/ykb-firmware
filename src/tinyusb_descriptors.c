@@ -3,25 +3,23 @@
 #include "tusb.h"
 #include <stdint.h>
 
-uint16_t tud_hid_get_report_cb(uint8_t instance, uint8_t report_id,
-                               hid_report_type_t report_type, uint8_t *buffer,
-                               uint16_t reqlen) {
+uint16_t tud_hid_get_report_cb(uint8_t, uint8_t, hid_report_type_t, uint8_t *,
+                               uint16_t) {
     // TODO
     return 0;
 }
 
-void tud_hid_set_report_cb(uint8_t instance, uint8_t report_id,
-                           hid_report_type_t report_type, const uint8_t *buffer,
-                           uint16_t bufsize) {
+void tud_hid_set_report_cb(uint8_t, uint8_t, hid_report_type_t, const uint8_t *,
+                           uint16_t) {
     // TODO
 }
 
-const uint8_t *tud_hid_descriptor_report_cb(uint8_t instance) {
+const uint8_t *tud_hid_descriptor_report_cb(uint8_t) {
     // TODO
     return NULL;
 }
 
-const uint8_t *tud_descriptor_configuration_cb(uint8_t index) {
+const uint8_t *tud_descriptor_configuration_cb(uint8_t) {
     // TODO
     return NULL;
 }
@@ -31,7 +29,7 @@ const uint8_t *tud_descriptor_device_cb() {
     return NULL;
 }
 
-const uint16_t *tud_descriptor_string_cb(uint8_t index, uint16_t langid) {
+const uint16_t *tud_descriptor_string_cb(uint8_t, uint16_t) {
     // TODO
     return NULL;
 }
