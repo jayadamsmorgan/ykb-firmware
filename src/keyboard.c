@@ -2,7 +2,6 @@
 #include "mux.h"
 #include "pinout.h"
 #include "settings.h"
-#include <stdlib.h>
 
 //
 // KB Settings
@@ -39,7 +38,7 @@ static inline error_t kb_key_pressed_by_threshold(const mux_t *const mux,
                                                   uint8_t channel,
                                                   uint16_t *const value) {
     mux_select_chan(mux, channel);
-    uint32_t mux_value = mux_read(mux);
+    int32_t mux_value = mux_read(mux);
     if (mux_value < 0) {
         // TODO: error occured, debug it to serial
         return mux_value;
@@ -87,42 +86,34 @@ void kb_poll_race(kb_key_t *pressed_key) {
 
 int8_t kb_poll_normal(kb_key_t **const pressed) {
 
-    kb_key_t *pressed_keys = malloc(sizeof(kb_key_t) * 36);
-
-    if (!pressed_keys) {
-        return -1;
+    if (!pressed) {
+        return 0;
     }
 
     uint8_t pressed_amount = 0;
 
     for (uint8_t i = 0; i < MUX1_KEY_COUNT; i++) {
-        if (kb_key_pressed_by_threshold(&mux1, i, NULL)) {
-            pressed_keys[pressed_amount++] =
-                (kb_key_t){.num = i, .value = key_threshold};
+        uint16_t val;
+        if (kb_key_pressed_by_threshold(&mux1, i, &val) > 0) {
+
+            *pressed[pressed_amount++] = (kb_key_t){.num = i, .value = val};
         }
     }
     for (uint8_t i = 0; i < MUX2_KEY_COUNT; i++) {
-        if (kb_key_pressed_by_threshold(&mux2, i, NULL)) {
-            pressed_keys[pressed_amount++] =
-                (kb_key_t){.num = MUX1_KEY_COUNT + i, .value = key_threshold};
+        uint16_t val;
+        if (kb_key_pressed_by_threshold(&mux2, i, &val) > 0) {
+            *pressed[pressed_amount++] =
+                (kb_key_t){.num = MUX1_KEY_COUNT + i, .value = val};
         }
     }
     for (uint8_t i = 0; i < MUX1_KEY_COUNT; i++) {
-        if (kb_key_pressed_by_threshold(&mux1, i, NULL)) {
-            pressed_keys[pressed_amount++] =
+        uint16_t val;
+        if (kb_key_pressed_by_threshold(&mux1, i, &val) > 0) {
+            *pressed[pressed_amount++] =
                 (kb_key_t){.num = MUX1_KEY_COUNT + MUX2_KEY_COUNT + i,
                            .value = key_threshold};
         }
     }
-
-    if (pressed_amount == 0) {
-        free(pressed_keys);
-        return 0;
-    }
-
-    pressed_keys = realloc(pressed_keys, sizeof(kb_key_t) * pressed_amount);
-
-    *pressed = pressed_keys;
 
     return (int8_t)pressed_amount;
 }

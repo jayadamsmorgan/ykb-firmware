@@ -1,7 +1,4 @@
 #include "class/hid/hid_device.h"
-#include "device/usbd.h"
-#include "tusb.h"
-#include <stdint.h>
 
 uint16_t tud_hid_get_report_cb(uint8_t, uint8_t, hid_report_type_t, uint8_t *,
                                uint16_t) {

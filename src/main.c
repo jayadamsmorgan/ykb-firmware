@@ -1,5 +1,4 @@
 #include "clock.h"
-#include "hal/flash.h"
 #include "hal/gpio.h"
 
 gpio_pin_t green_led = PB0;

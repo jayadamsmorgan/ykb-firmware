@@ -1,8 +1,5 @@
 #include "mux.h"
 #include "hal/bits.h"
-#include "hal/gpio.h"
-#include "pinout.h"
-#include <stdint.h>
 
 void mux_init(const mux_t *const mux) {
     for (uint8_t i = 0; i < 4; i++) {

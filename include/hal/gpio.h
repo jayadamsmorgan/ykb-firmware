@@ -3,7 +3,6 @@
 
 #include "stm32wbxx.h"
 #include <errno.h>
-#include <stdbool.h>
 
 // TYPES
 

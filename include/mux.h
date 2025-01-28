@@ -2,7 +2,6 @@
 #define MUX_H
 
 #include "hal/gpio.h"
-#include "stdint.h"
 
 typedef struct {
     gpio_pin_t ctrl[4];
