@@ -1,8 +1,8 @@
 #ifndef HAL_GPIO_H
 #define HAL_GPIO_H
 
+#include "hal/hal_err.h"
 #include "stm32wbxx.h"
-#include <errno.h>
 #include <stdbool.h>
 
 // TYPES
@@ -142,21 +142,27 @@ void gpio_adc_start();
 void gpio_adc_stop();
 
 // Requires `gpio_adc_end()`
-error_t gpio_adc_calibrate(gpio_calib_input_mode mode,
+hal_err gpio_adc_calibrate(gpio_calib_input_mode mode,
                            uint8_t *const calibration_factor);
 
 // Requires `gpio_adc_calibrate()`, `gpio_adc_start()`
-error_t gpio_adc_apply_calibration(gpio_calib_input_mode mode,
+hal_err gpio_adc_apply_calibration(gpio_calib_input_mode mode,
                                    uint8_t calibration_factor);
 
-error_t gpio_adc_set_sampling_time(gpio_pin_t pin, gpio_adc_sampling_time time);
+hal_err gpio_adc_set_sampling_time(gpio_pin_t pin, gpio_adc_sampling_time time);
 
-error_t gpio_adc_set_resolution(gpio_adc_resolution resolution);
+hal_err gpio_adc_set_resolution(gpio_adc_resolution resolution);
 
 void gpio_digital_write(gpio_pin_t pin, bool val);
 
 bool gpio_digital_read(gpio_pin_t pin);
 
-error_t gpio_analog_read(gpio_pin_t pin, uint32_t *const data);
+hal_err gpio_analog_read(gpio_pin_t pin, uint32_t *const data);
+
+hal_err gpio_enable_interrupt(gpio_pin_t pin);
+
+hal_err gpio_set_interrupt_falling(gpio_pin_t pin);
+
+hal_err gpio_set_interrupt_rising(gpio_pin_t pin);
 
 #endif // HAL_GPIO_H

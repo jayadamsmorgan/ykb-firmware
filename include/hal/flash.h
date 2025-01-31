@@ -8,6 +8,8 @@ typedef enum {
     FLASH_LATENCY_THREE_WAIT = 3U,
 } flash_latency;
 
+void flash_enable_prefetch();
+
 void flash_select_latency(flash_latency latency);
 
 #endif // HAL_FLASH_H

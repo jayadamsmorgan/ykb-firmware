@@ -1,11 +1,14 @@
 #include "clock.h"
 
+#include "error_handler.h"
 #include "hal/clock.h"
 #include "hal/flash.h"
+#include "hal/hal_err.h"
 #include "stm32wbxx.h"
+#include "system_stm32wbxx.h"
 
 // Use HSE and the PLL to get a 64MHz SYSCLK
-inline void setup_clock() {
+inline hal_err setup_clock() {
 
     // Enable the 32MHz external oscillator
     clock_hse_enable();
@@ -34,4 +37,10 @@ inline void setup_clock() {
 
     // Update `SystemCoreClock` variable
     SystemCoreClockUpdate();
+
+    if (SystemCoreClock != 64000000) {
+        return ERR_INV_SYSCLOCK;
+    }
+
+    return OK;
 }

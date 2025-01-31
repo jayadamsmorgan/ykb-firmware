@@ -1,6 +1,7 @@
 #ifndef HAL_CLOCK_H
 #define HAL_CLOCK_H
 
+#include <stdint.h>
 typedef enum {
     CLOCK_SOURCE_MSI = 0U,
     CLOCK_SOURCE_HSI16 = 1U,

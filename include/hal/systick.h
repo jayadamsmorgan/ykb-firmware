@@ -1,11 +1,18 @@
 #ifndef HAL_SYSTICK_H
 #define HAL_SYSTICK_H
 
-#include <stdint.h>
+#include "hal/clock.h"
+#include "hal/hal_err.h"
 
-void SysTick_Init();
-void SysTick_Handler();
-void delay_ms(uint32_t ms);
-uint32_t getMillis();
+typedef enum {
+    SYSTICK_FREQ_10HZ = 100U,
+    SYSTICK_FREQ_100HZ = 10U,
+    SYSTICK_FREQ_1KHZ = 1U,
+} systick_frequency;
+
+// Has to be called after clock setup
+hal_err systick_init();
+
+void systick_delay(uint32_t ms);
 
 #endif // HAL_SYSTICK_H

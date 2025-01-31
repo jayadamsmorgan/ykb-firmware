@@ -1,6 +1,10 @@
 #include "hal/gpio.h"
 #include "hal/bits.h"
+#include "hal/cortex.h"
+#include "hal/hal_err.h"
+#include "stm32wb55xx.h"
 #include "stm32wbxx.h"
+#include <stdint.h>
 
 static gpio_adc_resolution seleceted_adc_res = GPIO_ADC_RES_12BIT;
 
@@ -85,17 +89,17 @@ void gpio_adc_stop() {
     CLEAR_BIT(RCC->AHB2ENR, RCC_AHB2ENR_ADCEN);
 }
 
-error_t gpio_adc_calibrate(gpio_calib_input_mode mode,
+hal_err gpio_adc_calibrate(gpio_calib_input_mode mode,
                            uint8_t *const calibration_factor) {
 
     if (READ_BIT(ADC1->CR, ADC_CR_DEEPPWD) == 1) {
-        return -1;
+        return ERR_GPIO_ADC_CALIB_DEEPPWD;
     }
     if (READ_BIT(ADC1->CR, ADC_CR_ADVREGEN) == 0) {
-        return -2;
+        return ERR_GPIO_ADC_CALIB_ADVREGEN;
     }
     if (READ_BIT(ADC1->CR, ADC_CR_ADEN) == 1) {
-        return -3;
+        return ERR_GPIO_ADC_CALIB_ADEN;
     }
 
     if (mode == GPIO_CALIB_INPUT_DIFFERENTIAL) {
@@ -108,7 +112,7 @@ error_t gpio_adc_calibrate(gpio_calib_input_mode mode,
     }
 
     if (!calibration_factor) {
-        return 0;
+        return OK;
     }
 
     switch (mode) {
@@ -124,19 +128,19 @@ error_t gpio_adc_calibrate(gpio_calib_input_mode mode,
         break;
     }
 
-    return 0;
+    return OK;
 }
 
-error_t gpio_adc_apply_calibration(gpio_calib_input_mode mode,
+hal_err gpio_adc_apply_calibration(gpio_calib_input_mode mode,
                                    const uint8_t calibration_factor) {
     if (READ_BIT(ADC1->CR, ADC_CR_ADEN) == 0) {
-        return -2;
+        return ERR_GPIO_ADC_APPLY_CALIB_ADEN;
     }
     if (READ_BIT(ADC1->CR, ADC_CR_ADSTART) == 1) {
-        return -3;
+        return ERR_GPIO_ADC_APPLY_CALIB_ADSTART;
     }
     if (READ_BIT(ADC1->CR, ADC_CR_JADSTART) == 1) {
-        return -4;
+        return ERR_GPIO_ADC_APPLY_CALIB_JADSTART;
     }
     if (mode == GPIO_CALIB_INPUT_DIFFERENTIAL) {
         MODIFY_BITS(ADC1->CALFACT, ADC_CALFACT_CALFACT_D_Pos,
@@ -145,42 +149,39 @@ error_t gpio_adc_apply_calibration(gpio_calib_input_mode mode,
         MODIFY_BITS(ADC1->CALFACT, ADC_CALFACT_CALFACT_S_Pos,
                     calibration_factor, BITMASK_7BIT);
     }
-    return 0;
+    return OK;
 }
 
-error_t gpio_adc_set_sampling_time(gpio_pin_t pin,
+hal_err gpio_adc_set_sampling_time(gpio_pin_t pin,
                                    gpio_adc_sampling_time time) {
-    if (pin.adc_chan <= -1) {
-        return -1;
-    }
-    if (pin.adc_chan > 18) {
-        return -2;
+    if (pin.adc_chan < 0 || pin.adc_chan > 18) {
+        return ERR_GPIO_ADC_SET_ST_NON_ADC;
     }
     if (READ_BITS(pin.gpio->MODER, pin.num * 2, BITMASK_2BIT) !=
         GPIO_MODE_ANALOG) {
-        return -3;
+        return ERR_GPIO_ADC_SET_ST_NOT_ANALOG;
     }
     if (pin.adc_chan > 9) {
         MODIFY_BITS(ADC1->SMPR2, (pin.adc_chan - 10) * 3, time, BITMASK_3BIT);
     } else {
         MODIFY_BITS(ADC1->SMPR1, pin.adc_chan * 3, time, BITMASK_3BIT);
     }
-    return 0;
+    return OK;
 }
 
-error_t gpio_adc_set_resolution(gpio_adc_resolution resolution) {
+hal_err gpio_adc_set_resolution(gpio_adc_resolution resolution) {
 
     if (READ_BIT(ADC1->CR, ADC_CR_ADSTART) == 1) {
-        return -1;
+        return ERR_GPIO_ADC_SET_RES_ADSTART;
     }
     if (READ_BIT(ADC1->CR, ADC_CR_JADSTART) == 1) {
-        return -2;
+        return ERR_GPIO_ADC_SET_RES_JADSTART;
     }
 
     MODIFY_BITS(ADC1->CFGR, ADC_CFGR_RES_Pos, resolution, BITMASK_2BIT);
     seleceted_adc_res = resolution;
 
-    return 0;
+    return OK;
 }
 
 void gpio_digital_write(gpio_pin_t pin, bool val) {
@@ -188,19 +189,16 @@ void gpio_digital_write(gpio_pin_t pin, bool val) {
 }
 
 bool gpio_digital_read(gpio_pin_t pin) {
-    return READ_BIT(pin.gpio->IDR, pin.num);
+    return READ_BITS(pin.gpio->IDR, pin.num, BITMASK_1BIT);
 }
 
-error_t gpio_analog_read(gpio_pin_t pin, uint32_t *const data) {
+hal_err gpio_analog_read(gpio_pin_t pin, uint32_t *const data) {
 
-    if (pin.adc_chan <= -1) {
-        return -1;
-    }
-    if (pin.adc_chan > 18) {
-        return -2;
+    if (pin.adc_chan < 0 || pin.adc_chan > 18) {
+        return ERR_GPIO_ADC_READ_NON_ADC;
     }
     if (READ_BIT(ADC1->CR, ADC_CR_ADEN) == 0) {
-        return -3;
+        return ERR_GPIO_ADC_READ_ADEN;
     }
 
     SET_BIT(ADC1->CR, ADC_CR_ADSTART);
@@ -209,17 +207,17 @@ error_t gpio_analog_read(gpio_pin_t pin, uint32_t *const data) {
 
     if (!data) {
         // Cannot write to data, but no error actually happened
-        return 0;
+        return OK;
     }
 
     switch (seleceted_adc_res) {
 
     case GPIO_ADC_RES_12BIT:
-        *data = READ_REG(ADC1->DR) & BITMASK_12BIT;
+        *data = READ_BITS(ADC1->DR, 0, BITMASK_12BIT);
         break;
 
     case GPIO_ADC_RES_10BIT:
-        *data = READ_REG(ADC1->DR) & BITMASK_10BIT;
+        *data = READ_BITS(ADC1->DR, 0, BITMASK_10BIT);
         break;
 
     case GPIO_ADC_RES_8BIT:
@@ -231,5 +229,122 @@ error_t gpio_analog_read(gpio_pin_t pin, uint32_t *const data) {
         break;
     }
 
-    return 0;
+    return OK;
+}
+
+hal_err gpio_set_interrupt_falling(gpio_pin_t pin) {
+    if (pin.num > 15) {
+        return ERR_GPIO_SET_INTF_WR_PN;
+    }
+    MODIFY_BITS(EXTI->FTSR1, pin.num, 1U, BITMASK_1BIT);
+    return OK;
+}
+
+hal_err gpio_set_interrupt_rising(gpio_pin_t pin) {
+    if (pin.num > 15) {
+        return ERR_GPIO_SET_INTR_WR_PN;
+    }
+    MODIFY_BITS(EXTI->RTSR1, pin.num, 1U, BITMASK_1BIT);
+    return OK;
+}
+
+hal_err gpio_enable_interrupt(gpio_pin_t pin) {
+
+    IRQn_Type irq;
+
+    switch (pin.num) {
+    case 0:
+        irq = EXTI0_IRQn;
+        break;
+    case 1:
+        irq = EXTI1_IRQn;
+        break;
+    case 2:
+        irq = EXTI2_IRQn;
+        break;
+    case 3:
+        irq = EXTI3_IRQn;
+        break;
+    case 4:
+        irq = EXTI4_IRQn;
+        break;
+    case 5:
+        irq = EXTI9_5_IRQn;
+        break;
+    case 6:
+        irq = EXTI9_5_IRQn;
+        break;
+    case 7:
+        irq = EXTI9_5_IRQn;
+        break;
+    case 8:
+        irq = EXTI9_5_IRQn;
+        break;
+    case 9:
+        irq = EXTI9_5_IRQn;
+        break;
+    case 10:
+        irq = EXTI15_10_IRQn;
+        break;
+    case 11:
+        irq = EXTI15_10_IRQn;
+        break;
+    case 12:
+        irq = EXTI15_10_IRQn;
+        break;
+    case 13:
+        irq = EXTI15_10_IRQn;
+        break;
+    case 14:
+        irq = EXTI15_10_IRQn;
+        break;
+    case 15:
+        irq = EXTI15_10_IRQn;
+        break;
+    default:
+        return ERR_GPIO_SET_INT_WR_PN;
+    }
+
+    uint8_t gpio_chan;
+
+    if (pin.gpio == GPIOA) {
+        gpio_chan = 0;
+    } else if (pin.gpio == GPIOB) {
+        gpio_chan = 1;
+    } else if (pin.gpio == GPIOC) {
+        gpio_chan = 2;
+    } else if (pin.gpio == GPIOD) {
+        gpio_chan = 3;
+    } else if (pin.gpio == GPIOE) {
+        gpio_chan = 4;
+    } else if (pin.gpio == GPIOH) {
+        gpio_chan = 7;
+    } else {
+        return ERR_GPIO_SET_INT_WR_GPIO;
+    }
+
+    if (pin.num < 4) {
+        MODIFY_BITS(SYSCFG->EXTICR[0], pin.num * 4, gpio_chan, BITMASK_3BIT);
+    } else if (pin.num < 8) {
+        MODIFY_BITS(SYSCFG->EXTICR[1], (pin.num - 4) * 4, gpio_chan,
+                    BITMASK_3BIT);
+    } else if (pin.num < 12) {
+        MODIFY_BITS(SYSCFG->EXTICR[2], (pin.num - 8) * 4, gpio_chan,
+                    BITMASK_3BIT);
+    } else if (pin.num < 16) {
+        MODIFY_BITS(SYSCFG->EXTICR[3], (pin.num - 12) * 4, gpio_chan,
+                    BITMASK_3BIT);
+    }
+
+    // Enable and set Button EXTI Interrupt to the lowest priority
+    hal_err err;
+
+    err = cortex_nvic_set_priority(irq, 0x0F, 0x00);
+    if (err) {
+        return err;
+    }
+
+    cortex_nvic_enable(irq);
+
+    return OK;
 }

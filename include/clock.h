@@ -1,7 +1,9 @@
 #ifndef CLOCK_H
 #define CLOCK_H
 
+#include "hal/hal_err.h"
+
 // Use HSE and the PLL to get a 64MHz SYSCLK
-void setup_clock();
+hal_err setup_clock();
 
 #endif // CLOCK_H

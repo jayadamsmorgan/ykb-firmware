@@ -33,6 +33,18 @@
 
 //
 //
+// Debug
+//
+#ifndef DBG_LONG_BLINK_DELAY
+#define DBG_LONG_BLINK_DELAY 1000
+#endif // DBG_LONG_BLINK_DELAY
+
+#ifndef DBG_SHORT_BLINK_DELAY
+#define DBG_SHORT_BLINK_DELAY 300
+#endif // DBG_SHORT_BLINK_DELAY
+
+//
+//
 // Checks
 //
 // Double checking settings are somewhat correct
