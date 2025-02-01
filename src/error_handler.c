@@ -20,6 +20,7 @@ void error_handler(hal_err error_code) {
         return;
 
     if (error_code > 0 || error_code > -100) {
+        // Unknown error
         gpio_digital_write(led_dbg, HIGH);
         while (true) {
         }
@@ -43,3 +44,9 @@ void error_handler(hal_err error_code) {
         }
     }
 }
+
+void HardFault_Handler(void) { ERR_H(ERR_HARDFAULT); }
+
+void BusFault_Handler(void) { ERR_H(ERR_BUSFAULT); }
+
+void UsageFault_Handler(void) { ERR_H(ERR_USAGEFAULT); }

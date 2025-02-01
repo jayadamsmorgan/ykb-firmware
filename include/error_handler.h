@@ -3,7 +3,11 @@
 
 #include "hal/hal_err.h"
 
-#define ERR_INV_SYSCLOCK -102
+#define ERR_HARDFAULT -102
+#define ERR_BUSFAULT -103
+#define ERR_USAGEFAULT -104
+
+#define ERR_INV_SYSCLOCK -105
 
 #define ERR_H(ERR_CODE)                                                        \
     do {                                                                       \

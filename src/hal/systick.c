@@ -19,7 +19,7 @@ hal_err systick_init() {
 
 void systick_delay(uint32_t ms) {
     while (ms) {
-        if (SysTick->CTRL & SysTick_CTRL_COUNTFLAG_Msk) {
+        if (READ_BIT(SysTick->CTRL, SysTick_CTRL_COUNTFLAG_Msk)) {
             ms--;
             __WFI();
         }

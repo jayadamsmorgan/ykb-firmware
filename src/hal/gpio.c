@@ -336,6 +336,8 @@ hal_err gpio_enable_interrupt(gpio_pin_t pin) {
                     BITMASK_3BIT);
     }
 
+    MODIFY_BITS(EXTI->IMR1, pin.num, 1, BITMASK_1BIT);
+
     // Enable and set Button EXTI Interrupt to the lowest priority
     hal_err err;
 
