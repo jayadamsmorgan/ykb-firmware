@@ -30,4 +30,6 @@ typedef error_t hal_err;
 #define ERR_SYSTICK_INIT_FREQ_INV -501
 #define ERR_SYSTICK_INIT_FREQ_CONFIG -502
 
+#define ERR_CRS_SET_SM_T_INV_TRIM -601
+
 #endif // HAL_ERR_H
