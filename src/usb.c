@@ -5,9 +5,10 @@
 #include "utils/utils.h"
 
 #define USBD_VID 0x483
-#define USBD_LANGID_STRING 1033
-#define USBD_MANUFACTURER_STRING "STMicroelectronics"
 #define USBD_PID 0x5710
+#define USBD_LANGID_STRING 1033
+
+#define USBD_MANUFACTURER_STRING "STMicroelectronics"
 #define USBD_PRODUCT_STRING "STM32 Human interface"
 #define USBD_CONFIGURATION_STRING "HID Config"
 #define USBD_INTERFACE_STRING "HID Interface"
@@ -22,8 +23,6 @@ hal_err usb_init() {
     }
 
     usb_hid_config_t hid_config = {
-        .type = USB_DESC_TYPE_DEVICE,
-
         .vendor_id = USBD_VID,
         .product_id = USBD_PID,
         .lang_id = USBD_LANGID_STRING,

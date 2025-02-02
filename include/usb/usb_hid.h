@@ -1,7 +1,6 @@
 #ifndef USB_HID_H
 #define USB_HID_H
 
-#include "usb/usb_descriptor.h"
 #include <stdint.h>
 
 typedef enum {
@@ -17,7 +16,6 @@ typedef enum {
 } usb_desc_type;
 
 typedef struct {
-    usb_desc_type type;
     uint16_t vendor_id;
     uint16_t product_id;
     uint16_t lang_id;
