@@ -1,6 +1,7 @@
 #ifndef USB_HID_H
 #define USB_HID_H
 
+#include "usb/usb_device.h"
 #include <stdint.h>
 
 typedef enum {
@@ -28,5 +29,7 @@ typedef struct {
 } usb_hid_config_t;
 
 void usb_hid_init(usb_hid_config_t config);
+
+usb_device_status usb_hid_register_class();
 
 #endif // USB_HID_H

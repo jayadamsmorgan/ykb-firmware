@@ -1,6 +1,7 @@
 #include "usb.h"
 
 #include "crs.h"
+#include "usb/usb_device.h"
 #include "usb/usb_hid.h"
 #include "utils/utils.h"
 
@@ -34,6 +35,18 @@ hal_err usb_init() {
     };
 
     usb_hid_init(hid_config);
+
+    err = usb_device_init();
+    if (err) {
+        return err;
+    }
+
+    err = usb_hid_register_class();
+    if (err) {
+        return err;
+    }
+
+    usb_device_start();
 
     return OK;
 }

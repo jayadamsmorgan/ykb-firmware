@@ -274,6 +274,22 @@
         PCD_SET_EP_DBUF1_CNT((USBx), (bEpNum), (bDir), (wCount));              \
     } while (0) /* PCD_SET_EP_DBUF_CNT */
 
+#define PCD_SET_BULK_EP_DBUF(USBx, bEpNum) PCD_SET_EP_KIND((USBx), (bEpNum))
+#define PCD_CLEAR_BULK_EP_DBUF(USBx, bEpNum) PCD_CLEAR_EP_KIND((USBx), (bEpNum))
+#define PCD_SET_OUT_STATUS(USBx, bEpNum) PCD_SET_EP_KIND((USBx), (bEpNum))
+#define PCD_CLEAR_OUT_STATUS(USBx, bEpNum) PCD_CLEAR_EP_KIND((USBx), (bEpNum))
+
+#define PCD_FREE_USER_BUFFER(USBx, bEpNum, bDir)                               \
+    do {                                                                       \
+        if ((bDir) == 0U) {                                                    \
+            /* OUT double buffered endpoint */                                 \
+            PCD_TX_DTOG((USBx), (bEpNum));                                     \
+        } else if ((bDir) == 1U) {                                             \
+            /* IN double buffered endpoint */                                  \
+            PCD_RX_DTOG((USBx), (bEpNum));                                     \
+        }                                                                      \
+    } while (0)
+
 typedef enum {
     USB_LOCK_UNLOCKED = 0x00, //
     USB_LOCK_LOCKED = 0x01    //
@@ -373,5 +389,19 @@ hal_err hal_usb_init(usb_ll_handle_t *handle);
 
 void hal_usb_pma_config(usb_ll_handle_t *handle, uint16_t ep_addr,
                         uint16_t ep_kind, uint32_t pmaadress);
+
+void hal_usb_device_start_ep_xfer(usb_endpoint_t *ep);
+
+void hal_usb_deactivate_endpoint(usb_endpoint_t *ep);
+
+hal_err hal_usb_activate_endpoint(usb_endpoint_t *ep);
+
+void hal_usb_stall_endpoint(usb_ll_handle_t *handle, uint8_t ep_addr);
+
+void hal_usb_start();
+
+void hal_usb_activate_remote_wakeup();
+
+void hal_usb_deactivate_remote_wakeup();
 
 #endif // HAL_USB_H

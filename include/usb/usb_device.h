@@ -14,6 +14,23 @@
 #define ERR_USBD_REG_CLASS_PCLASS_NULL -802
 #define ERR_USBD_ACT_END_INV_EPTYPE -803
 
+#define USBD_STATE_DEFAULT 0x01U
+#define HID_EPIN_ADDR 0x81U
+
+#define EP_TYPE_CTRL 0U
+#define EP_TYPE_ISOC 1U
+#define EP_TYPE_BULK 2U
+#define EP_TYPE_INTR 3U
+#define EP_TYPE_MSK 3U
+
+#define USBD_EP0_IDLE 0x00U
+#define USBD_EP0_SETUP 0x01U
+#define USBD_EP0_DATA_IN 0x02U
+#define USBD_EP0_DATA_OUT 0x03U
+#define USBD_EP0_STATUS_IN 0x04U
+#define USBD_EP0_STATUS_OUT 0x05U
+#define USBD_EP0_STALL 0x06U
+
 struct _usb_device_endpoint_t;
 struct _usb_device_setup_request_t;
 struct _usb_device_class_t;
@@ -90,6 +107,13 @@ typedef struct _usb_device_handle_t {
     uint32_t num_classes;
 } usb_device_handle_t;
 
+typedef enum {
+    USBD_OK = 0U,
+    USBD_BUSY,
+    USBD_EMEM,
+    USBD_FAIL,
+} usb_device_status;
+
 hal_err usb_device_init();
 
 hal_err usb_device_register_class(usb_device_handle_t *pdev,
@@ -97,5 +121,17 @@ hal_err usb_device_register_class(usb_device_handle_t *pdev,
 
 hal_err usb_device_open_ep(usb_ll_handle_t *handle, uint8_t ep_addr,
                            uint8_t ep_type, uint16_t ep_mps);
+
+void usb_device_close_ep(usb_ll_handle_t *handle, uint8_t ep_addr);
+
+void usb_device_transmit_ep(usb_ll_handle_t *handle, uint8_t ep_addr,
+                            uint8_t *pBuf, uint32_t len);
+
+void usb_device_send_data(usb_device_handle_t *pdev, uint8_t *pbuf,
+                          uint32_t len);
+
+void usb_device_ctrl_error(usb_device_handle_t *pdev);
+
+void usb_device_start();
 
 #endif // USB_DEVICE_H

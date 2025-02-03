@@ -18,6 +18,14 @@
 #define HIBYTE(x) ((uint8_t)(((x) & 0xFF00U) >> 8U))
 #endif /* HIBYTE */
 
+#ifndef MIN
+#define MIN(a, b) (((a) < (b)) ? (a) : (b))
+#endif /* MIN */
+
+#ifndef MAX
+#define MAX(a, b) (((a) > (b)) ? (a) : (b))
+#endif /* MAX */
+
 static inline void int_to_unicode(uint32_t value, uint8_t *pbuf, uint8_t len) {
     uint8_t idx = 0;
 
