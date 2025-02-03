@@ -1,8 +1,11 @@
 #include "usb/usb_hid.h"
 
+#include "hal/usb.h"
 #include "stm32wbxx.h"
 #include "usb/usb_descriptors.h"
+#include "usb/usb_device.h"
 #include "utils/utils.h"
+#include <stdint.h>
 
 #define DESCRIPTOR_TYPE_POS 1
 #define VENDOR_LOW_POS 8
@@ -12,6 +15,14 @@
 
 #define LANG_ID_LOW_POS 2
 #define LANG_ID_HIGH_POS 3
+
+#define HID_EPIN_ADDR 0x81U
+#define HID_EPIN_SIZE 0x04U
+
+#define HID_HS_BINTERVAL 0x07U
+#define HID_FS_BINTERVAL 0xAU
+
+#define USBD_EP_TYPE_INTR 0x03U
 
 extern uint8_t usb_device_desc[USB_DEVICE_DESC_LENGTH] ALIGNED;
 
@@ -30,6 +41,82 @@ extern uint16_t usb_config_str_desc_length;
 
 extern uint8_t usb_interface_str_desc[USB_INTERFACE_DESC_LENGTH] ALIGNED;
 extern uint16_t usb_interface_str_desc_length;
+
+typedef enum {
+    USBD_HID_IDLE = 0,
+    USBD_HID_BUSY,
+} usb_hid_state;
+
+typedef struct {
+    uint32_t Protocol;
+    uint32_t IdleState;
+    uint32_t AltSetting;
+    usb_hid_state state;
+} usb_hid_handle_t;
+
+static inline void *usb_hid_static_malloc() {
+    static uint32_t
+        mem[(sizeof(usb_hid_handle_t) / 4) + 1]; /* On 32-bit boundary */
+    return mem;
+}
+
+typedef enum {
+    USBD_OK = 0U,
+    USBD_BUSY,
+    USBD_EMEM,
+    USBD_FAIL,
+} USBD_StatusTypeDef;
+
+uint8_t usb_hid_class_init(usb_device_handle_t *pdev, uint8_t cfgidx) {
+    UNUSED(cfgidx);
+
+    usb_hid_handle_t *hhid;
+
+    hhid = (usb_hid_handle_t *)usb_hid_static_malloc();
+
+    if (!hhid) {
+        pdev->p_class_data_cmsit[pdev->class_id] = NULL;
+        return USBD_EMEM;
+    }
+
+    pdev->p_class_data_cmsit[pdev->class_id] = (void *)hhid;
+    pdev->p_class_data = pdev->p_class_data_cmsit[pdev->class_id];
+
+    if (pdev->dev_speed == USB_DEVICE_SPEED_HIGH) {
+        pdev->ep_in[HID_EPIN_ADDR & 0xFU].b_interval = HID_HS_BINTERVAL;
+    } else /* LOW and FULL-speed endpoints */
+    {
+        pdev->ep_in[HID_EPIN_ADDR & 0xFU].b_interval = HID_FS_BINTERVAL;
+    }
+
+    /* Open EP IN */
+    if (usb_device_open_ep(pdev->p_data, HID_EPIN_ADDR, USBD_EP_TYPE_INTR,
+                           HID_EPIN_SIZE)) {
+        return USBD_FAIL;
+    }
+    pdev->ep_in[HID_EPIN_ADDR & 0xFU].is_used = 1U;
+
+    hhid->state = USBD_HID_IDLE;
+
+    return USBD_OK;
+}
+
+// usb_device_class_t USBD_HID = {
+//     usb_hid_class_init,
+//     USBD_HID_DeInit,
+//     USBD_HID_Setup,
+//     NULL,            /* EP0_TxSent */
+//     NULL,            /* EP0_RxReady */
+//     USBD_HID_DataIn, /* DataIn */
+//     NULL,            /* DataOut */
+//     NULL,            /* SOF */
+//     NULL,
+//     NULL,
+//     USBD_HID_GetHSCfgDesc,
+//     USBD_HID_GetFSCfgDesc,
+//     USBD_HID_GetOtherSpeedCfgDesc,
+//     USBD_HID_GetDeviceQualifierDesc,
+// };
 
 void usb_hid_init_serial_str() {
     // TODO: split this implementation with "hal/flash.h"

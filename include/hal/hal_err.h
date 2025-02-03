@@ -32,4 +32,7 @@ typedef error_t hal_err;
 
 #define ERR_CRS_SET_SM_T_INV_TRIM -601
 
+#define ERR_USB_INIT_HANDLE_NULL -701
+#define ERR_USB_INIT_INSTANCE_NULL -702
+
 #endif // HAL_ERR_H

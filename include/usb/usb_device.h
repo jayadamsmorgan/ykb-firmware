@@ -2,10 +2,17 @@
 #define USB_DEVICE_H
 
 #include "hal/hal_err.h"
+#include "hal/usb.h"
+#include "stm32wbxx.h"
 #include "usb/usb_descriptors.h"
+#include <stdbool.h>
 #include <stdint.h>
 
 #define USBD_MAX_SUPPORTED_CLASS 1U
+
+#define ERR_USBD_REG_CLASS_PDEV_NULL -801
+#define ERR_USBD_REG_CLASS_PCLASS_NULL -802
+#define ERR_USBD_ACT_END_INV_EPTYPE -803
 
 struct _usb_device_endpoint_t;
 struct _usb_device_setup_request_t;
@@ -84,5 +91,11 @@ typedef struct _usb_device_handle_t {
 } usb_device_handle_t;
 
 hal_err usb_device_init();
+
+hal_err usb_device_register_class(usb_device_handle_t *pdev,
+                                  usb_device_class_t *pclass);
+
+hal_err usb_device_open_ep(usb_ll_handle_t *handle, uint8_t ep_addr,
+                           uint8_t ep_type, uint16_t ep_mps);
 
 #endif // USB_DEVICE_H
