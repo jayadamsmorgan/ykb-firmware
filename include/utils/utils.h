@@ -26,6 +26,21 @@
 #define MAX(a, b) (((a) > (b)) ? (a) : (b))
 #endif /* MAX */
 
+static inline uint16_t SWAPBYTE(uint8_t *addr) {
+    uint16_t _SwapVal;
+    uint16_t _Byte1;
+    uint16_t _Byte2;
+    uint8_t *_pbuff = addr;
+
+    _Byte1 = *(uint8_t *)_pbuff;
+    _pbuff++;
+    _Byte2 = *(uint8_t *)_pbuff;
+
+    _SwapVal = (_Byte2 << 8) | _Byte1;
+
+    return _SwapVal;
+}
+
 static inline void int_to_unicode(uint32_t value, uint8_t *pbuf, uint8_t len) {
     uint8_t idx = 0;
 

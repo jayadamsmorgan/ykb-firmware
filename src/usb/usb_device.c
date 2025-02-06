@@ -3,6 +3,7 @@
 #include "hal/hal_err.h"
 #include "hal/usb.h"
 #include "stm32wb55xx.h"
+#include <stdint.h>
 
 extern usb_device_descriptors_t usb_device_descriptors;
 usb_device_handle_t usb_device_handle;
@@ -51,6 +52,96 @@ void usb_device_close_ep(usb_ll_handle_t *handle, uint8_t ep_addr) {
     // __HAL_UNLOCK(handle); TODO
 }
 
+void USBD_CtlReceiveStatus(usb_device_handle_t *pdev) {
+    /* Set EP0 State */
+    pdev->ep0_state = USBD_EP0_STATUS_OUT;
+
+    /* Start the transfer */
+    usb_device_receive_ep(pdev->p_data, 0U, NULL, 0U);
+}
+
+void USBD_LL_DataInStage(usb_device_handle_t *pdev, uint8_t epnum,
+                         uint8_t *pdata) {
+    usb_device_endpoint_t *pep;
+    uint8_t idx;
+
+    if (epnum == 0U) {
+        pep = &pdev->ep_in[0];
+
+        if (pdev->ep0_state == USBD_EP0_DATA_IN) {
+            if (pep->rem_length > pep->max_packet) {
+                pep->rem_length -= pep->max_packet;
+
+                // (void)USBD_CtlContinueSendData(pdev, pdata, pep->rem_length);
+                usb_device_transmit_ep(pdev->p_data, 0x00U, pdata,
+                                       pep->rem_length);
+
+                /* Prepare endpoint for premature end of transfer */
+                usb_device_receive_ep(pdev->p_data, 0U, NULL, 0U);
+            } else {
+                /* last packet is MPS multiple, so send ZLP packet */
+                if ((pep->max_packet == pep->rem_length) &&
+                    (pep->total_length >= pep->max_packet) &&
+                    (pep->total_length < pdev->ep0_data_len)) {
+                    usb_device_transmit_ep(pdev->p_data, 0x00U, NULL, 0U);
+                    pdev->ep0_data_len = 0U;
+
+                    /* Prepare endpoint for premature end of transfer */
+                    usb_device_receive_ep(pdev->p_data, 0U, NULL, 0U);
+                } else {
+                    if (pdev->dev_state == USBD_STATE_CONFIGURED) {
+                        if (pdev->p_class[0]->ep0_tx_sent != NULL) {
+                            pdev->class_id = 0U;
+                            pdev->p_class[0]->ep0_tx_sent(pdev);
+                        }
+                    }
+                    hal_usb_stall_endpoint(pdev->p_data, 0x80U);
+                    (void)USBD_CtlReceiveStatus(pdev);
+                }
+            }
+        }
+
+        if (pdev->dev_test_mode != 0U) {
+            // (void)USBD_RunTestMode(pdev); TODO
+            pdev->dev_test_mode = 0U;
+        }
+    } else {
+        /* Get the class index relative to this interface */
+        // idx = USBD_CoreFindEP(pdev, ((uint8_t)epnum | 0x80U));
+        idx = 0x00U;
+
+        if (((uint16_t)idx != 0xFFU) && (idx < USBD_MAX_SUPPORTED_CLASS)) {
+            /* Call the class data out function to manage the request */
+            if (pdev->dev_state == USBD_STATE_CONFIGURED) {
+                if (pdev->p_class[idx]->data_in != NULL) {
+                    pdev->class_id = idx;
+                    pdev->p_class[idx]->data_in(pdev, epnum);
+                }
+            }
+        }
+    }
+}
+
+void usb_device_ctrl_send_status(usb_device_handle_t *pdev) {
+    /* Set EP0 State */
+    pdev->ep0_state = USBD_EP0_STATUS_IN;
+
+    /* Start the transfer */
+    usb_device_transmit_ep(pdev->p_data, 0x00U, NULL, 0U);
+}
+
+void usb_device_ctrl_send_data(usb_device_handle_t *pdev, uint8_t *pbuf,
+                               uint32_t len) {
+    /* Set EP0 State */
+    pdev->ep0_state = USBD_EP0_DATA_IN;
+    pdev->ep_in[0].total_length = len;
+
+    pdev->ep_in[0].rem_length = len;
+
+    /* Start the transfer */
+    usb_device_transmit_ep(pdev->p_data, 0x00U, pbuf, len);
+}
+
 void usb_device_transmit_ep(usb_ll_handle_t *handle, uint8_t ep_addr,
                             uint8_t *pBuf, uint32_t len) {
     usb_endpoint_t *ep;
@@ -64,6 +155,22 @@ void usb_device_transmit_ep(usb_ll_handle_t *handle, uint8_t ep_addr,
     ep->xfer_len_db = len;
     ep->xfer_count = 0U;
     ep->is_in = 1U;
+    ep->num = ep_addr & EP_ADDR_MSK;
+
+    hal_usb_device_start_ep_xfer(ep);
+}
+
+void usb_device_receive_ep(usb_ll_handle_t *handle, uint8_t ep_addr,
+                           uint8_t *pBuf, uint32_t len) {
+    usb_endpoint_t *ep;
+
+    ep = &handle->out_ep[ep_addr & EP_ADDR_MSK];
+
+    /*setup and start the Xfer */
+    ep->xfer_buff = pBuf;
+    ep->xfer_len = len;
+    ep->xfer_count = 0U;
+    ep->is_in = 0U;
     ep->num = ep_addr & EP_ADDR_MSK;
 
     hal_usb_device_start_ep_xfer(ep);

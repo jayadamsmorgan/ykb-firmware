@@ -127,10 +127,21 @@ void usb_device_close_ep(usb_ll_handle_t *handle, uint8_t ep_addr);
 void usb_device_transmit_ep(usb_ll_handle_t *handle, uint8_t ep_addr,
                             uint8_t *pBuf, uint32_t len);
 
+void usb_device_receive_ep(usb_ll_handle_t *handle, uint8_t ep_addr,
+                           uint8_t *pBuf, uint32_t len);
+
 void usb_device_send_data(usb_device_handle_t *pdev, uint8_t *pbuf,
                           uint32_t len);
 
 void usb_device_ctrl_error(usb_device_handle_t *pdev);
+
+void usb_device_ctrl_send_data(usb_device_handle_t *pdev, uint8_t *pbuf,
+                               uint32_t len);
+
+void usb_device_ctrl_send_status(usb_device_handle_t *pdev);
+
+void USBD_LL_DataInStage(usb_device_handle_t *pdev, uint8_t epnum,
+                         uint8_t *pdata);
 
 void usb_device_start();
 

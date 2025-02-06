@@ -290,6 +290,30 @@
         }                                                                      \
     } while (0)
 
+#define PCD_EP_TX_CNT(USBx, bEpNum)                                            \
+    ((uint16_t *)((((uint32_t)(USBx)->BTABLE + ((uint32_t)(bEpNum) * 8U) +     \
+                    2U) *                                                      \
+                   1U) +                                                       \
+                  ((uint32_t)(USBx) + 0x400U)))
+
+#define PCD_GET_EP_TX_CNT(USBx, bEpNum)                                        \
+    ((uint32_t)(*PCD_EP_TX_CNT((USBx), (bEpNum))) & 0x3ffU)
+#define PCD_GET_EP_DBUF0_CNT(USBx, bEpNum) (PCD_GET_EP_TX_CNT((USBx), (bEpNum)))
+
+#define PCD_EP_RX_CNT(USBx, bEpNum)                                            \
+    ((uint16_t *)((((uint32_t)(USBx)->BTABLE + ((uint32_t)(bEpNum) * 8U) +     \
+                    6U) *                                                      \
+                   1U) +                                                       \
+                  ((uint32_t)(USBx) + 0x400U)))
+#define PCD_GET_EP_RX_CNT(USBx, bEpNum)                                        \
+    ((uint32_t)(*PCD_EP_RX_CNT((USBx), (bEpNum))) & 0x3ffU)
+#define PCD_GET_EP_DBUF1_CNT(USBx, bEpNum) (PCD_GET_EP_RX_CNT((USBx), (bEpNum)))
+
+#define USBD_STATE_DEFAULT 0x01U
+#define USBD_STATE_ADDRESSED 0x02U
+#define USBD_STATE_CONFIGURED 0x03U
+#define USBD_STATE_SUSPENDED 0x04U
+
 typedef enum {
     USB_LOCK_UNLOCKED = 0x00, //
     USB_LOCK_LOCKED = 0x01    //
@@ -396,9 +420,21 @@ void hal_usb_deactivate_endpoint(usb_endpoint_t *ep);
 
 hal_err hal_usb_activate_endpoint(usb_endpoint_t *ep);
 
-void hal_usb_stall_endpoint(usb_ll_handle_t *handle, uint8_t ep_addr);
+uint8_t hal_usb_stall_endpoint(usb_ll_handle_t *handle, uint8_t ep_addr);
 
+void hal_usb_clear_stall_endpoint(usb_ll_handle_t *handle, uint8_t ep_addr);
+
+void hal_usb_read_pma(uint8_t *pbUsrBuf, uint16_t wPMABufAddr,
+                      uint16_t wNBytes);
+
+void hal_usb_ep_db_transmit(usb_ll_handle_t *handle, usb_endpoint_t *ep,
+                            uint16_t wEPVal);
+
+uint16_t hal_usb_ep_db_receive(usb_ll_handle_t *handle, usb_endpoint_t *ep,
+                               uint16_t wEPVal);
 void hal_usb_start();
+
+void hal_usb_set_address(usb_ll_handle_t *handle, uint8_t address);
 
 void hal_usb_activate_remote_wakeup();
 

@@ -1,6 +1,7 @@
 #include "usb/usb_descriptors.h"
 
 #include "stm32wb55xx.h"
+#include "usb/usb_hid.h"
 #include "utils/utils.h"
 
 uint8_t usb_device_desc[USB_DEVICE_DESC_LENGTH] ALIGNED = {
@@ -37,7 +38,10 @@ uint16_t usb_manufacturer_str_desc_length;
 uint8_t usb_product_str_desc[USB_PRODUCT_DESC_LENGTH] ALIGNED;
 uint16_t usb_product_str_desc_length;
 
-uint8_t usb_serial_str_desc[USB_SERIAL_DESC_LENGTH] ALIGNED;
+uint8_t usb_serial_str_desc[USB_SERIAL_DESC_LENGTH] ALIGNED = {
+    USB_SERIAL_DESC_LENGTH,
+    USB_DESC_TYPE_STRING,
+};
 
 uint8_t usb_config_str_desc[USB_CONFIG_DESC_LENGTH] ALIGNED;
 uint16_t usb_config_str_desc_length;

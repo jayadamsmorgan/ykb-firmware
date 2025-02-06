@@ -1,8 +1,12 @@
 #include "hal/usb.h"
 
+#include "hal/cortex.h"
+#include "hal/gpio.h"
 #include "hal/hal_err.h"
+#include "stm32wb55xx.h"
 #include "stm32wbxx.h"
 #include "usb/usb_device.h"
+#include <stdint.h>
 
 #define BTABLE_ADDRESS 0x000U
 
@@ -46,6 +50,22 @@ hal_err hal_usb_init(usb_ll_handle_t *handle) {
         /* Allocate lock resource and initialize it */
         handle->lock = USB_LOCK_UNLOCKED;
     }
+
+    gpio_turn_on_port(GPIOA);
+
+    gpio_set_mode(PA11, GPIO_MODE_AF);
+    gpio_set_mode(PA12, GPIO_MODE_AF);
+    gpio_set_speed(PA11, GPIO_SPEED_HIGH);
+    gpio_set_speed(PA12, GPIO_SPEED_HIGH);
+    gpio_set_pupd(PA11, GPIO_PUPD_NONE);
+    gpio_set_pupd(PA12, GPIO_PUPD_NONE);
+    gpio_set_af_mode(PA11, GPIO_AF_MODE_10);
+    gpio_set_af_mode(PA12, GPIO_AF_MODE_10);
+
+    SET_BIT(RCC->APB1ENR1, RCC_APB1ENR1_USBEN);
+
+    cortex_nvic_set_priority(USB_LP_IRQn, 6, 0);
+    cortex_nvic_enable(USB_LP_IRQn);
 
     handle->state = USB_COMM_STATE_BUSY;
 
@@ -97,6 +117,29 @@ hal_err hal_usb_init(usb_ll_handle_t *handle) {
     return OK;
 }
 
+void hal_usb_write_pma(uint8_t *pbUsrBuf, uint16_t wPMABufAddr,
+                       uint16_t wNBytes) {
+    uint32_t n = ((uint32_t)wNBytes + 1U) >> 1;
+    uint32_t BaseAddr = (uint32_t)USB;
+    uint32_t count;
+    uint16_t WrVal;
+    __IO uint16_t *pdwVal;
+    uint8_t *pBuf = pbUsrBuf;
+
+    pdwVal =
+        (__IO uint16_t *)(BaseAddr + 0x400U + ((uint32_t)wPMABufAddr * 1U));
+
+    for (count = n; count != 0U; count--) {
+        WrVal = pBuf[0];
+        WrVal |= (uint16_t)pBuf[1] << 8;
+        *pdwVal = (WrVal & 0xFFFFU);
+        pdwVal++;
+
+        pBuf++;
+        pBuf++;
+    }
+}
+
 void hal_usb_pma_config(usb_ll_handle_t *handle, uint16_t ep_addr,
                         uint16_t ep_kind, uint32_t pmaadress) {
     usb_endpoint_t *ep;
@@ -124,6 +167,202 @@ void hal_usb_pma_config(usb_ll_handle_t *handle, uint16_t ep_addr,
     }
 
     return;
+}
+
+void hal_usb_ep_db_transmit(usb_ll_handle_t *handle, usb_endpoint_t *ep,
+                            uint16_t wEPVal) {
+    uint32_t len;
+    uint16_t TxPctSize;
+
+    /* Data Buffer0 ACK received */
+    if ((wEPVal & USB_EP_DTOG_TX) != 0U) {
+        /* multi-packet on the NON control IN endpoint */
+        TxPctSize = (uint16_t)PCD_GET_EP_DBUF0_CNT(handle->instance, ep->num);
+
+        if (ep->xfer_len > TxPctSize) {
+            ep->xfer_len -= TxPctSize;
+        } else {
+            ep->xfer_len = 0U;
+        }
+
+        /* Transfer is completed */
+        if (ep->xfer_len == 0U) {
+            PCD_SET_EP_DBUF0_CNT(handle->instance, ep->num, ep->is_in, 0U);
+            PCD_SET_EP_DBUF1_CNT(handle->instance, ep->num, ep->is_in, 0U);
+
+            if (ep->type == EP_TYPE_BULK) {
+                /* Set Bulk endpoint in NAK state */
+                PCD_SET_EP_TX_STATUS(handle->instance, ep->num, USB_EP_TX_NAK);
+            }
+
+            /* TX COMPLETE */
+            USBD_LL_DataInStage(handle->p_data, ep->num,
+                                handle->in_ep[ep->num].xfer_buff);
+
+            if ((wEPVal & USB_EP_DTOG_RX) != 0U) {
+                PCD_FREE_USER_BUFFER(handle->instance, ep->num, 1U);
+            }
+
+            return;
+        } else /* Transfer is not yet Done */
+        {
+            /* Need to Free USB Buffer */
+            if ((wEPVal & USB_EP_DTOG_RX) != 0U) {
+                PCD_FREE_USER_BUFFER(handle->instance, ep->num, 1U);
+            }
+
+            /* Still there is data to Fill in the next Buffer */
+            if (ep->xfer_fill_db == 1U) {
+                ep->xfer_buff += TxPctSize;
+                ep->xfer_count += TxPctSize;
+
+                /* Calculate the len of the new buffer to fill */
+                if (ep->xfer_len_db >= ep->maxpacket) {
+                    len = ep->maxpacket;
+                    ep->xfer_len_db -= len;
+                } else if (ep->xfer_len_db == 0U) {
+                    len = TxPctSize;
+                    ep->xfer_fill_db = 0U;
+                } else {
+                    ep->xfer_fill_db = 0U;
+                    len = ep->xfer_len_db;
+                    ep->xfer_len_db = 0U;
+                }
+
+                /* Write remaining Data to Buffer */
+                /* Set the Double buffer counter for pma buffer0 */
+                PCD_SET_EP_DBUF0_CNT(handle->instance, ep->num, ep->is_in, len);
+
+                /* Copy user buffer to USB PMA */
+                hal_usb_write_pma(ep->xfer_buff, ep->pmaaddr0, (uint16_t)len);
+            }
+        }
+    } else /* Data Buffer1 ACK received */
+    {
+        /* multi-packet on the NON control IN endpoint */
+        TxPctSize = (uint16_t)PCD_GET_EP_DBUF1_CNT(handle->instance, ep->num);
+
+        if (ep->xfer_len >= TxPctSize) {
+            ep->xfer_len -= TxPctSize;
+        } else {
+            ep->xfer_len = 0U;
+        }
+
+        /* Transfer is completed */
+        if (ep->xfer_len == 0U) {
+            PCD_SET_EP_DBUF0_CNT(handle->instance, ep->num, ep->is_in, 0U);
+            PCD_SET_EP_DBUF1_CNT(handle->instance, ep->num, ep->is_in, 0U);
+
+            if (ep->type == EP_TYPE_BULK) {
+                /* Set Bulk endpoint in NAK state */
+                PCD_SET_EP_TX_STATUS(handle->instance, ep->num, USB_EP_TX_NAK);
+            }
+
+            /* TX COMPLETE */
+            USBD_LL_DataInStage(handle->p_data, ep->num,
+                                handle->in_ep[ep->num].xfer_buff);
+
+            /* need to Free USB Buff */
+            if ((wEPVal & USB_EP_DTOG_RX) == 0U) {
+                PCD_FREE_USER_BUFFER(handle->instance, ep->num, 1U);
+            }
+
+            return;
+        } else /* Transfer is not yet Done */
+        {
+            /* Need to Free USB Buffer */
+            if ((wEPVal & USB_EP_DTOG_RX) == 0U) {
+                PCD_FREE_USER_BUFFER(handle->instance, ep->num, 1U);
+            }
+
+            /* Still there is data to Fill in the next Buffer */
+            if (ep->xfer_fill_db == 1U) {
+                ep->xfer_buff += TxPctSize;
+                ep->xfer_count += TxPctSize;
+
+                /* Calculate the len of the new buffer to fill */
+                if (ep->xfer_len_db >= ep->maxpacket) {
+                    len = ep->maxpacket;
+                    ep->xfer_len_db -= len;
+                } else if (ep->xfer_len_db == 0U) {
+                    len = TxPctSize;
+                    ep->xfer_fill_db = 0U;
+                } else {
+                    len = ep->xfer_len_db;
+                    ep->xfer_len_db = 0U;
+                    ep->xfer_fill_db = 0;
+                }
+
+                /* Set the Double buffer counter for pma buffer1 */
+                PCD_SET_EP_DBUF1_CNT(handle->instance, ep->num, ep->is_in, len);
+
+                /* Copy the user buffer to USB PMA */
+                hal_usb_write_pma(ep->xfer_buff, ep->pmaaddr1, (uint16_t)len);
+            }
+        }
+    }
+
+    /* Enable endpoint IN */
+    PCD_SET_EP_TX_STATUS(handle->instance, ep->num, USB_EP_TX_VALID);
+}
+
+uint16_t hal_usb_ep_db_receive(usb_ll_handle_t *handle, usb_endpoint_t *ep,
+                               uint16_t wEPVal) {
+    uint16_t count;
+
+    /* Manage Buffer0 OUT */
+    if ((wEPVal & USB_EP_DTOG_RX) != 0U) {
+        /* Get count of received Data on buffer0 */
+        count = (uint16_t)PCD_GET_EP_DBUF0_CNT(handle->instance, ep->num);
+
+        if (ep->xfer_len >= count) {
+            ep->xfer_len -= count;
+        } else {
+            ep->xfer_len = 0U;
+        }
+
+        if (ep->xfer_len == 0U) {
+            /* Set NAK to OUT endpoint since double buffer is enabled */
+            PCD_SET_EP_RX_STATUS(handle->instance, ep->num, USB_EP_RX_NAK);
+        }
+
+        /* Check if Buffer1 is in blocked state which requires to toggle */
+        if ((wEPVal & USB_EP_DTOG_TX) != 0U) {
+            PCD_FREE_USER_BUFFER(handle->instance, ep->num, 0U);
+        }
+
+        if (count != 0U) {
+            hal_usb_read_pma(ep->xfer_buff, ep->pmaaddr0, count);
+        }
+    }
+    /* Manage Buffer 1 DTOG_RX=0 */
+    else {
+        /* Get count of received data */
+        count = (uint16_t)PCD_GET_EP_DBUF1_CNT(handle->instance, ep->num);
+
+        if (ep->xfer_len >= count) {
+            ep->xfer_len -= count;
+        } else {
+            ep->xfer_len = 0U;
+        }
+
+        if (ep->xfer_len == 0U) {
+            /* Set NAK on the current endpoint */
+            PCD_SET_EP_RX_STATUS(handle->instance, ep->num, USB_EP_RX_NAK);
+        }
+
+        /* Need to FreeUser Buffer */
+        if ((wEPVal & USB_EP_DTOG_TX) == 0U) {
+            PCD_FREE_USER_BUFFER(handle->instance, ep->num, 0U);
+        }
+
+        if (count != 0U) {
+
+            hal_usb_read_pma(ep->xfer_buff, ep->pmaaddr1, count);
+        }
+    }
+
+    return count;
 }
 
 hal_err hal_usb_activate_endpoint(usb_endpoint_t *ep) {
@@ -272,12 +511,12 @@ void hal_usb_deactivate_endpoint(usb_endpoint_t *ep) {
     }
 }
 
-void hal_usb_write_pma(uint8_t *pbUsrBuf, uint16_t wPMABufAddr,
-                       uint16_t wNBytes) {
-    uint32_t n = ((uint32_t)wNBytes + 1U) >> 1;
+void hal_usb_read_pma(uint8_t *pbUsrBuf, uint16_t wPMABufAddr,
+                      uint16_t wNBytes) {
+    uint32_t n = (uint32_t)wNBytes >> 1;
     uint32_t BaseAddr = (uint32_t)USB;
     uint32_t count;
-    uint16_t WrVal;
+    uint32_t RdVal;
     __IO uint16_t *pdwVal;
     uint8_t *pBuf = pbUsrBuf;
 
@@ -285,22 +524,36 @@ void hal_usb_write_pma(uint8_t *pbUsrBuf, uint16_t wPMABufAddr,
         (__IO uint16_t *)(BaseAddr + 0x400U + ((uint32_t)wPMABufAddr * 1U));
 
     for (count = n; count != 0U; count--) {
-        WrVal = pBuf[0];
-        WrVal |= (uint16_t)pBuf[1] << 8;
-        *pdwVal = (WrVal & 0xFFFFU);
+        RdVal = *(__IO uint16_t *)pdwVal;
         pdwVal++;
+        *pBuf = (uint8_t)((RdVal >> 0) & 0xFFU);
+        pBuf++;
+        *pBuf = (uint8_t)((RdVal >> 8) & 0xFFU);
+        pBuf++;
+    }
 
-        pBuf++;
-        pBuf++;
+    if ((wNBytes % 2U) != 0U) {
+        RdVal = *pdwVal;
+        *pBuf = (uint8_t)((RdVal >> 0) & 0xFFU);
     }
 }
 
-void hal_usb_stall_endpoint(usb_ll_handle_t *handle, uint8_t ep_addr) {
+void hal_usb_set_address(usb_ll_handle_t *handle, uint8_t address) {
+    // __HAL_LOCK(handle); TODO
+    handle->usb_address = address;
+    if (address == 0U) {
+        /* set device address and enable function */
+        USB->DADDR = (uint16_t)USB_DADDR_EF;
+    }
+    // __HAL_UNLOCK(handle); TODO
+}
+
+uint8_t hal_usb_stall_endpoint(usb_ll_handle_t *handle, uint8_t ep_addr) {
 
     usb_endpoint_t *ep;
 
     if (((uint32_t)ep_addr & EP_ADDR_MSK) > handle->init.dev_endpoints) {
-        return;
+        return USBD_FAIL;
     }
 
     if ((0x80U & ep_addr) == 0x80U) {
@@ -323,6 +576,42 @@ void hal_usb_stall_endpoint(usb_ll_handle_t *handle, uint8_t ep_addr) {
     }
 
     // __HAL_UNLOCK(handle); TODO
+    return USBD_OK;
+}
+
+void hal_usb_clear_stall_endpoint(usb_ll_handle_t *handle, uint8_t ep_addr) {
+    usb_endpoint_t *ep;
+
+    if (((uint32_t)ep_addr & 0x0FU) > handle->init.dev_endpoints) {
+        return;
+    }
+
+    if ((0x80U & ep_addr) == 0x80U) {
+        ep = &handle->in_ep[ep_addr & EP_ADDR_MSK];
+        ep->is_in = 1U;
+    } else {
+        ep = &handle->out_ep[ep_addr & EP_ADDR_MSK];
+        ep->is_in = 0U;
+    }
+
+    ep->is_stall = 0U;
+    ep->num = ep_addr & EP_ADDR_MSK;
+
+    // __HAL_LOCK(handle);
+    if (ep->is_in != 0U) {
+        PCD_CLEAR_TX_DTOG(USB, ep->num);
+
+        if (ep->type != EP_TYPE_ISOC) {
+            /* Configure NAK status for the Endpoint */
+            PCD_SET_EP_TX_STATUS(USB, ep->num, USB_EP_TX_NAK);
+        }
+    } else {
+        PCD_CLEAR_RX_DTOG(USB, ep->num);
+
+        /* Configure VALID status for the Endpoint */
+        PCD_SET_EP_RX_STATUS(USB, ep->num, USB_EP_RX_VALID);
+    }
+    // __HAL_UNLOCK(handle);
 }
 
 void hal_usb_device_start_ep_xfer(usb_endpoint_t *ep) {
@@ -494,13 +783,13 @@ void hal_usb_device_start_ep_xfer(usb_endpoint_t *ep) {
 
 void hal_usb_start() {
 
-    // __HAL_LOCK(hpcd);
+    // __HAL_LOCK(handle);
 
     hal_usb_enable_interrupts();
 
     USB->BCDR |= (uint16_t)USB_BCDR_DPPU;
 
-    // __HAL_UNLOCK(hpcd);
+    // __HAL_UNLOCK(handle);
 }
 
 void hal_usb_deactivate_remote_wakeup() {
