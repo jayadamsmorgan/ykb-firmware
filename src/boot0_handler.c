@@ -15,19 +15,12 @@ hal_err setup_boot0_handler() {
 
     gpio_set_mode(sw, GPIO_MODE_INPUT);
 
-    hal_err err;
-
-    err = gpio_set_interrupt_rising(sw);
+    hal_err err = gpio_set_interrupt_rising(sw);
     if (err) {
         return err;
     }
 
-    err = gpio_enable_interrupt(sw);
-    if (err) {
-        return err;
-    }
-
-    return OK;
+    return gpio_enable_interrupt(sw);
 }
 
 void EXTI3_IRQHandler(void) {

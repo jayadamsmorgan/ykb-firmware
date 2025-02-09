@@ -26,6 +26,10 @@
 #define MAX(a, b) (((a) > (b)) ? (a) : (b))
 #endif /* MAX */
 
+#ifndef ATTR_WEAK
+#define ATTR_WEAK __attribute__((weak))
+#endif // ATTR_WEAK
+
 static inline uint16_t SWAPBYTE(uint8_t *addr) {
     uint16_t _SwapVal;
     uint16_t _Byte1;

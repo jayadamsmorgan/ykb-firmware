@@ -1,8 +1,8 @@
 #ifndef USB_H
 #define USB_H
 
-#include <errno.h>
+#include "hal/hal_err.h"
 
-error_t usb_init();
+hal_err setup_usb();
 
 #endif // USB_H

@@ -4,6 +4,6 @@
 #include "hal/crs.h"
 #include "hal/hal_err.h"
 
-hal_err crs_setup();
+hal_err setup_crs();
 
 #endif // CRS_H

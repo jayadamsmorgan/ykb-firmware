@@ -67,16 +67,17 @@ INCLUDES = -I$(INC_DIR) \
 		   -I$(CMSIS_DEVICE_INC_DIR) \
 
 COMMON_FLAGS = -Wall -Wextra -Werror \
+			   -fdata-sections -ffunction-sections \
 			   -std=gnu2x \
 			   -mlittle-endian -mthumb -mthumb-interwork \
                -mfloat-abi=hard -mfpu=fpv4-sp-d16 -mcpu=$(MCU) -D$(BOARD) \
 			   $(INCLUDES)
 
 # Use '--specs=nosys.specs' so we don't depend on newlib syscalls
-LDFLAGS = -T $(LD_SCRIPT) --specs=nosys.specs
+LDFLAGS = -T $(LD_SCRIPT) --specs=nosys.specs -Wl,--gc-sections
 
 # Debug CFLAGS
-DEBUG_CFLAGS   = -g -O0 -DDEBUG
+DEBUG_CFLAGS   = -g -gdwarf-2 -Og -DDEBUG
 # Release CFLAGS (adjust optimization as desired)
 RELEASE_CFLAGS = -O2
 

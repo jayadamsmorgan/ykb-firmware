@@ -1,6 +1,6 @@
 #include "crs.h"
 
-hal_err crs_setup() {
+hal_err setup_crs() {
 
     crs_enable();
 
