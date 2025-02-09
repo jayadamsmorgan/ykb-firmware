@@ -15,7 +15,7 @@ int _lseek(int file, int ptr, int dir) {
     return 0;
 }
 
-ATTR_WEAK int _read(int file, char *ptr, int len) {
+__weak int _read(int file, char *ptr, int len) {
     UNUSED(file);
     int DataIdx;
 
@@ -26,7 +26,7 @@ ATTR_WEAK int _read(int file, char *ptr, int len) {
     return len;
 }
 
-ATTR_WEAK int _write(int file, char *ptr, int len) {
+__weak int _write(int file, char *ptr, int len) {
     UNUSED(file);
     int DataIdx;
 

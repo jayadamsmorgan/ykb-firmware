@@ -15,4 +15,6 @@ hal_err systick_init();
 
 void systick_delay(uint32_t ms);
 
+uint32_t systick_get_tick();
+
 #endif // HAL_SYSTICK_H

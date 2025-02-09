@@ -19,6 +19,10 @@ void clock_usb_rng_select_source(clock_usb_rng_source source) {
     MODIFY_BITS(RCC->CCIPR, RCC_CCIPR_CLK48SEL_Pos, source, BITMASK_2BIT);
 }
 
+void clock_usb_enable() { SET_BIT(RCC->APB1ENR1, RCC_APB1ENR1_USBEN); }
+
+void clock_usb_disable() { CLEAR_BIT(RCC->APB1ENR1, RCC_APB1ENR1_USBEN); }
+
 // HSE
 
 void clock_hse_enable() {

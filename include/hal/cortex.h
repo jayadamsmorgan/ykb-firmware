@@ -13,6 +13,7 @@ typedef enum {
 } cortex_nvic_priority_group_t;
 
 void cortex_nvic_enable(IRQn_Type irqn);
+void cortex_nvic_disable(IRQn_Type irqn);
 
 hal_err cortex_nvic_set_priority(IRQn_Type irqn, uint32_t preempt_priority,
                                  uint32_t sub_priority);

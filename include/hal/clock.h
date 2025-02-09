@@ -204,6 +204,9 @@ void clock_select_source(clock_source source);
 
 void clock_usb_rng_select_source(clock_usb_rng_source source);
 
+void clock_usb_enable();
+void clock_usb_disable();
+
 // HSE
 void clock_hse_enable();
 

@@ -1,11 +1,8 @@
-#ifndef HAL_USB_H
-#define HAL_USB_H
-
 #include "hal/usb.h"
 
 #include "hal/hal_err.h"
+#include "hal/pcd.h"
 #include "stm32wbxx.h"
-#include "stm32wbxx_hal_pcd.h"
 #include "utils/utils.h"
 
 void hal_usb_enable_interrupts() {
@@ -35,14 +32,6 @@ void hal_usb_disable_interrupts() {
     USB->CNTR &= (uint16_t)(~winterruptmask);
 }
 
-/**
- * @brief  USB_DevInit Initializes the USB controller registers
- *         for device mode
- * @param  USBx Selected device
- * @param  cfg  pointer to a USB_CfgTypeDef structure that contains
- *         the configuration information for the specified USBx peripheral.
- * @retval HAL status
- */
 void hal_usb_device_init(USB_CfgTypeDef cfg) {
     /* Prevent unused argument(s) compilation warning */
     UNUSED(cfg);
@@ -121,10 +110,7 @@ hal_err hal_usb_activate_endpoint(USB_EPTypeDef *ep) {
                 PCD_SET_EP_RX_STATUS(USB, ep->num, USB_EP_RX_NAK);
             }
         }
-    }
-#if (USE_USB_DOUBLE_BUFFER == 1U)
-    /* Double Buffer */
-    else {
+    } else {
         if (ep->type == EP_TYPE_BULK) {
             /* Set bulk endpoint as double buffered */
             PCD_SET_BULK_EP_DBUF(USB, ep->num);
@@ -163,17 +149,9 @@ hal_err hal_usb_activate_endpoint(USB_EPTypeDef *ep) {
             PCD_SET_EP_RX_STATUS(USB, ep->num, USB_EP_RX_DIS);
         }
     }
-#endif /* (USE_USB_DOUBLE_BUFFER == 1U) */
-
     return OK;
 }
 
-/**
- * @brief  De-activate and de-initialize an endpoint
- * @param  USBx Selected device
- * @param  ep pointer to endpoint structure
- * @retval HAL status
- */
 hal_err USB_DeactivateEndpoint(USB_TypeDef *USBx, USB_EPTypeDef *ep) {
     if (ep->doublebuffer == 0U) {
         if (ep->is_in != 0U) {
@@ -190,7 +168,6 @@ hal_err USB_DeactivateEndpoint(USB_TypeDef *USBx, USB_EPTypeDef *ep) {
             PCD_SET_EP_RX_STATUS(USBx, ep->num, USB_EP_RX_DIS);
         }
     }
-#if (USE_USB_DOUBLE_BUFFER == 1U)
     /* Double Buffer */
     else {
         if (ep->is_in == 0U) {
@@ -214,23 +191,14 @@ hal_err USB_DeactivateEndpoint(USB_TypeDef *USBx, USB_EPTypeDef *ep) {
             PCD_SET_EP_RX_STATUS(USBx, ep->num, USB_EP_RX_DIS);
         }
     }
-#endif /* (USE_USB_DOUBLE_BUFFER == 1U) */
 
     return OK;
 }
 
-/**
- * @brief  USB_EPStartXfer setup and starts a transfer over an EP
- * @param  USBx Selected device
- * @param  ep pointer to endpoint structure
- * @retval HAL status
- */
 hal_err USB_EPStartXfer(USB_TypeDef *USBx, USB_EPTypeDef *ep) {
     uint32_t len;
-#if (USE_USB_DOUBLE_BUFFER == 1U)
     uint16_t pmabuffer;
     uint16_t wEPVal;
-#endif /* (USE_USB_DOUBLE_BUFFER == 1U) */
 
     /* IN endpoint */
     if (ep->is_in == 1U) {
@@ -245,9 +213,7 @@ hal_err USB_EPStartXfer(USB_TypeDef *USBx, USB_EPTypeDef *ep) {
         if (ep->doublebuffer == 0U) {
             USB_WritePMA(USBx, ep->xfer_buff, ep->pmaadress, (uint16_t)len);
             PCD_SET_EP_TX_CNT(USBx, ep->num, len);
-        }
-#if (USE_USB_DOUBLE_BUFFER == 1U)
-        else {
+        } else {
             /* double buffer bulk management */
             if (ep->type == EP_TYPE_BULK) {
                 if (ep->xfer_len_db > ep->maxpacket) {
@@ -347,7 +313,6 @@ hal_err USB_EPStartXfer(USB_TypeDef *USBx, USB_EPTypeDef *ep) {
                 }
             }
         }
-#endif /* (USE_USB_DOUBLE_BUFFER == 1U) */
 
         PCD_SET_EP_TX_STATUS(USBx, ep->num, USB_EP_TX_VALID);
     } else /* OUT endpoint */
@@ -366,9 +331,7 @@ hal_err USB_EPStartXfer(USB_TypeDef *USBx, USB_EPTypeDef *ep) {
             } else {
                 ep->xfer_len = 0U;
             }
-        }
-#if (USE_USB_DOUBLE_BUFFER == 1U)
-        else {
+        } else {
             /* First Transfer Coming From HAL_PCD_EP_Receive & From ISR */
             /* Set the Double buffer counter */
             if (ep->type == EP_TYPE_BULK) {
@@ -394,7 +357,6 @@ hal_err USB_EPStartXfer(USB_TypeDef *USBx, USB_EPTypeDef *ep) {
                 return HAL_ERROR;
             }
         }
-#endif /* (USE_USB_DOUBLE_BUFFER == 1U) */
 
         PCD_SET_EP_RX_STATUS(USBx, ep->num, USB_EP_RX_VALID);
     }
@@ -402,12 +364,6 @@ hal_err USB_EPStartXfer(USB_TypeDef *USBx, USB_EPTypeDef *ep) {
     return OK;
 }
 
-/**
- * @brief  USB_EPSetStall set a stall condition over an EP
- * @param  USBx Selected device
- * @param  ep pointer to endpoint structure
- * @retval HAL status
- */
 hal_err USB_EPSetStall(USB_TypeDef *USBx, USB_EPTypeDef *ep) {
     if (ep->is_in != 0U) {
         PCD_SET_EP_TX_STATUS(USBx, ep->num, USB_EP_TX_STALL);
@@ -418,12 +374,6 @@ hal_err USB_EPSetStall(USB_TypeDef *USBx, USB_EPTypeDef *ep) {
     return OK;
 }
 
-/**
- * @brief  USB_EPClearStall Clear a stall condition over an EP
- * @param  USBx Selected device
- * @param  ep pointer to endpoint structure
- * @retval HAL status
- */
 hal_err USB_EPClearStall(USB_TypeDef *USBx, USB_EPTypeDef *ep) {
     if (ep->is_in != 0U) {
         PCD_CLEAR_TX_DTOG(USBx, ep->num);
@@ -442,12 +392,6 @@ hal_err USB_EPClearStall(USB_TypeDef *USBx, USB_EPTypeDef *ep) {
     return OK;
 }
 
-/**
- * @brief  USB_EPStoptXfer  Stop transfer on an EP
- * @param  USBx  usb device instance
- * @param  ep pointer to endpoint structure
- * @retval HAL status
- */
 hal_err USB_EPStopXfer(USB_TypeDef *USBx, USB_EPTypeDef *ep) {
     /* IN endpoint */
     if (ep->is_in == 1U) {
@@ -476,11 +420,6 @@ hal_err USB_EPStopXfer(USB_TypeDef *USBx, USB_EPTypeDef *ep) {
     return OK;
 }
 
-/**
- * @brief  USB_StopDevice Stop the usb device mode
- * @param  USBx Selected device
- * @retval HAL status
- */
 hal_err USB_StopDevice(USB_TypeDef *USBx) {
     /* disable all interrupts and force USB reset */
     USBx->CNTR = (uint16_t)USB_CNTR_FRES;
@@ -494,13 +433,6 @@ hal_err USB_StopDevice(USB_TypeDef *USBx) {
     return OK;
 }
 
-/**
- * @brief  USB_SetDevAddress Stop the usb device mode
- * @param  USBx Selected device
- * @param  address new device address to be assigned
- *          This parameter can be a value from 0 to 255
- * @retval HAL status
- */
 hal_err USB_SetDevAddress(USB_TypeDef *USBx, uint8_t address) {
     if (address == 0U) {
         /* set device address and enable function */
@@ -510,12 +442,6 @@ hal_err USB_SetDevAddress(USB_TypeDef *USBx, uint8_t address) {
     return OK;
 }
 
-/**
- * @brief  USB_DevConnect Connect the USB device by enabling the
- * pull-up/pull-down
- * @param  USBx Selected device
- * @retval HAL status
- */
 hal_err USB_DevConnect(USB_TypeDef *USBx) {
     /* Enabling DP Pull-UP bit to Connect internal PU resistor on USB DP line */
     USBx->BCDR |= (uint16_t)USB_BCDR_DPPU;
@@ -523,12 +449,6 @@ hal_err USB_DevConnect(USB_TypeDef *USBx) {
     return OK;
 }
 
-/**
- * @brief  USB_DevDisconnect Disconnect the USB device by disabling the
- * pull-up/pull-down
- * @param  USBx Selected device
- * @retval HAL status
- */
 hal_err USB_DevDisconnect(USB_TypeDef *USBx) {
     /* Disable DP Pull-Up bit to disconnect the Internal PU resistor on USB DP
      * line */
@@ -537,11 +457,6 @@ hal_err USB_DevDisconnect(USB_TypeDef *USBx) {
     return OK;
 }
 
-/**
- * @brief  USB_ReadInterrupts return the global USB interrupt status
- * @param  USBx Selected device
- * @retval USB Global Interrupt status
- */
 uint32_t USB_ReadInterrupts(USB_TypeDef const *USBx) {
     uint32_t tmpreg;
 
@@ -549,36 +464,18 @@ uint32_t USB_ReadInterrupts(USB_TypeDef const *USBx) {
     return tmpreg;
 }
 
-/**
- * @brief  USB_ActivateRemoteWakeup : active remote wakeup signalling
- * @param  USBx Selected device
- * @retval HAL status
- */
 hal_err USB_ActivateRemoteWakeup(USB_TypeDef *USBx) {
     USBx->CNTR |= (uint16_t)USB_CNTR_RESUME;
 
     return OK;
 }
 
-/**
- * @brief  USB_DeActivateRemoteWakeup de-active remote wakeup signalling
- * @param  USBx Selected device
- * @retval HAL status
- */
 hal_err USB_DeActivateRemoteWakeup(USB_TypeDef *USBx) {
     USBx->CNTR &= (uint16_t)(~USB_CNTR_RESUME);
 
     return OK;
 }
 
-/**
- * @brief Copy a buffer from user memory area to packet memory area (PMA)
- * @param   USBx USB peripheral instance register address.
- * @param   pbUsrBuf pointer to user memory area.
- * @param   wPMABufAddr address into PMA.
- * @param   wNBytes no. of bytes to be copied.
- * @retval None
- */
 void USB_WritePMA(USB_TypeDef const *USBx, uint8_t *pbUsrBuf,
                   uint16_t wPMABufAddr, uint16_t wNBytes) {
     uint32_t n = ((uint32_t)wNBytes + 1U) >> 1;
@@ -597,23 +494,11 @@ void USB_WritePMA(USB_TypeDef const *USBx, uint8_t *pbUsrBuf,
         *pdwVal = (WrVal & 0xFFFFU);
         pdwVal++;
 
-#if PMA_ACCESS > 1U
-        pdwVal++;
-#endif /* PMA_ACCESS */
-
         pBuf++;
         pBuf++;
     }
 }
 
-/**
- * @brief Copy data from packet memory area (PMA) to user memory buffer
- * @param   USBx USB peripheral instance register address.
- * @param   pbUsrBuf pointer to user memory area.
- * @param   wPMABufAddr address into PMA.
- * @param   wNBytes no. of bytes to be copied.
- * @retval None
- */
 void USB_ReadPMA(USB_TypeDef const *USBx, uint8_t *pbUsrBuf,
                  uint16_t wPMABufAddr, uint16_t wNBytes) {
     uint32_t n = (uint32_t)wNBytes >> 1;
@@ -633,10 +518,6 @@ void USB_ReadPMA(USB_TypeDef const *USBx, uint8_t *pbUsrBuf,
         pBuf++;
         *pBuf = (uint8_t)((RdVal >> 8) & 0xFFU);
         pBuf++;
-
-#if PMA_ACCESS > 1U
-        pdwVal++;
-#endif /* PMA_ACCESS */
     }
 
     if ((wNBytes % 2U) != 0U) {
@@ -644,5 +525,3 @@ void USB_ReadPMA(USB_TypeDef const *USBx, uint8_t *pbUsrBuf,
         *pBuf = (uint8_t)((RdVal >> 0) & 0xFFU);
     }
 }
-
-#endif // HAL_USB_H

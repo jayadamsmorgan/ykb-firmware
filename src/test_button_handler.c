@@ -1,11 +1,11 @@
 #include "test_button_handler.h"
 
 #include "hal/gpio.h"
+#include "hal/pcd.h"
 #include "hal/systick.h"
-#include "stm32wb55xx.h"
 #include "stm32wbxx.h"
-#include "usbd_def.h"
-#include "usbd_hid.h"
+#include "usb/usbd_def.h"
+#include "usb/usbd_hid.h"
 
 gpio_pin_t button = PA10;
 

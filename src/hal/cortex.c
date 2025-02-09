@@ -1,7 +1,10 @@
 #include "hal/cortex.h"
+
 #include "hal/hal_err.h"
 
 void cortex_nvic_enable(IRQn_Type irqn) { NVIC_EnableIRQ(irqn); }
+
+void cortex_nvic_disable(IRQn_Type irqn) { NVIC_DisableIRQ(irqn); }
 
 hal_err cortex_nvic_set_priority(IRQn_Type irqn, uint32_t preempt_priority,
                                  uint32_t sub_priority) {

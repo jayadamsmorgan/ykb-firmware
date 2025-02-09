@@ -1,8 +1,8 @@
-#ifndef HAL_USB_H__
-#define HAL_USB_H__
+#ifndef HAL_USB_H
+#define HAL_USB_H
 
 #include "hal/hal_err.h"
-#include "stm32wbxx_hal_def.h"
+#include "stm32wbxx.h"
 
 #define EP_MPS_64 0U
 #define EP_MPS_32 1U

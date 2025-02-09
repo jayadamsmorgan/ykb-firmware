@@ -17,6 +17,8 @@ hal_err systick_init() {
     return OK;
 }
 
+uint32_t systick_get_tick() { return tick; }
+
 void systick_delay(uint32_t ms) {
     while (ms) {
         if (READ_BIT(SysTick->CTRL, SysTick_CTRL_COUNTFLAG_Msk)) {
