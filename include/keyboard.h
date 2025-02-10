@@ -1,6 +1,7 @@
 #ifndef KEYBOARD_H
 #define KEYBOARD_H
 
+#include "hal/hal_err.h"
 #include <stdint.h>
 
 // TYPES
@@ -18,19 +19,19 @@ typedef enum { KB_MODE_NORMAL, KB_MODE_RACE } kb_mode;
 // FUNCTIONS
 
 // Initialize keyboard.
-void kb_init();
+hal_err kb_init();
 
 // Get current mode of the keyboard.
-kb_mode kb_get_mode();
+error_t kb_get_mode(kb_mode *const mode, bool blocking);
 
 // Set current mode of the keyboard.
-void kb_set_mode(kb_mode mode);
+error_t kb_set_mode(kb_mode new_mode, bool blocking);
 
 // Get current minimal threshold of key registration.
-uint32_t kb_get_min_threshold();
+error_t kb_get_min_threshold(uint32_t *threshold, bool blocking);
 
 // Set minimal threshold of key registration.
-void kb_set_min_threshold(uint32_t threshold);
+error_t kb_set_min_threshold(uint32_t threshold, bool blocking);
 
 int8_t kb_poll_normal(kb_key_t **const pressed_keys);
 void kb_poll_race(kb_key_t *pressed_key);

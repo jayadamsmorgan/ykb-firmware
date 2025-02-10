@@ -1,4 +1,5 @@
 #include "hal/gpio.h"
+
 #include "hal/bits.h"
 #include "hal/cortex.h"
 #include "hal/hal_err.h"

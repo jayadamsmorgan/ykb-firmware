@@ -1,25 +1,41 @@
 #include "mux.h"
-
 #include "hal/bits.h"
+#include "hal/gpio.h"
+#include "hal/hal_err.h"
+#include <stdint.h>
 
-void mux_init(const mux_t *const mux) {
-    for (uint8_t i = 0; i < 4; i++) {
-        gpio_set_mode(mux->ctrl[i], GPIO_MODE_OUTPUT);
+hal_err mux_init(const mux_t *const mux) {
+
+#ifdef DEBUG
+    if (mux->ctrls == NULL) {
+        return ERR_MUX_INIT_CTRLS_NULL;
     }
-    gpio_set_mode(mux->common, GPIO_MODE_ANALOG);
+    if (mux->ctrls_amount == 0) {
+        return ERR_MUX_INIT_CTRLS_ZERO;
+    }
+#endif // DEBUG
+
+    for (uint8_t i = 0; i < mux->ctrls_amount; i++) {
+        gpio_pin_t pin = mux->ctrls[i];
+        gpio_turn_on_port(pin.gpio);
+        gpio_set_mode(pin, GPIO_MODE_OUTPUT);
+        gpio_set_speed(pin, GPIO_SPEED_HIGH);
+    }
+
+    return OK;
 }
 
-void mux_select_chan(const mux_t *const mux, uint8_t channel) {
-    for (uint8_t i = 0; i < 4; i++) {
-        gpio_digital_write(mux->ctrl[i], (channel >> i) & BITMASK_1BIT);
-    }
-}
+hal_err mux_select_channel(const mux_t *const mux, uint8_t channel) {
 
-inline int32_t mux_read(const mux_t *const mux) {
-    uint32_t data;
-    error_t err = gpio_analog_read(mux->common, &data);
-    if (err) {
-        return err;
+#ifdef DEBUG
+    if (channel >= mux->ctrls_amount * mux->ctrls_amount) {
+        return ERR_MUX_SELECT_CHAN_INV;
     }
-    return (uint16_t)data;
+#endif // DEBUG
+
+    for (uint8_t i = 0; i < mux->ctrls_amount; i++) {
+        gpio_digital_write(mux->ctrls[i], (channel >> i) & BITMASK_1BIT);
+    }
+
+    return OK;
 }

@@ -6,6 +6,7 @@
 #include "stm32wbxx.h"
 #include "usb/usbd_def.h"
 #include "usb/usbd_hid.h"
+#include <stdint.h>
 
 gpio_pin_t button = PA10;
 
@@ -24,49 +25,22 @@ hal_err setup_test_button_handler() {
 }
 
 void GetPointerData(uint8_t *pbuf) {
-    static int8_t cnt = 0;
-    int8_t x = 0, y = 0;
-
-    if (cnt++ > 0) {
-        x = 5;
+    if (pbuf[2] < 0x04) {
+        pbuf[2] = 0x04;
     } else {
-        x = -5;
+        pbuf[2]++;
     }
-    pbuf[0] = 0;
-    pbuf[1] = x;
-    pbuf[2] = y;
-    pbuf[3] = 0;
 }
 
 extern USBD_HandleTypeDef hUsbDeviceFS;
-uint8_t HID_Buffer[4];
+uint8_t HID_Buffer[8];
+uint8_t HID_empty[8] = {0};
 
-void EXTI15_10_IRQHandler(void) {
-    if (READ_BIT(EXTI->PR1, EXTI_PR1_PIF10)) {
-        SET_BIT(EXTI->PR1, EXTI_PR1_PIF10);
-        if ((hUsbDeviceFS.dev_remote_wakeup == 1) &&
-            (hUsbDeviceFS.dev_state == USBD_STATE_SUSPENDED)) {
-            /* Activate Remote wakeup */
-            HAL_PCD_ActivateRemoteWakeup(
-                (PCD_HandleTypeDef *)(&hUsbDeviceFS.pData));
-
-            /* Remote wakeup delay */
-            systick_delay(10);
-
-            /* Disable Remote wakeup */
-            HAL_PCD_DeActivateRemoteWakeup(
-                (PCD_HandleTypeDef *)(&(hUsbDeviceFS.pData)));
-
-            /* change state to configured */
-            hUsbDeviceFS.dev_state = USBD_STATE_CONFIGURED;
-
-            /* Change remote_wakeup feature to 0 */
-            hUsbDeviceFS.dev_remote_wakeup = 0;
-        } else if (hUsbDeviceFS.dev_state == USBD_STATE_CONFIGURED) {
-            GetPointerData(HID_Buffer);
-            USBD_HID_SendReport(&hUsbDeviceFS, HID_Buffer, 4);
-        } else {
-            /* ... */
-        }
+void exti_handler_10() {
+    if (hUsbDeviceFS.dev_state == USBD_STATE_CONFIGURED) {
+        GetPointerData(HID_Buffer);
+        USBD_HID_SendReport(&hUsbDeviceFS, HID_Buffer, 8);
+        systick_delay(20);
+        USBD_HID_SendReport(&hUsbDeviceFS, HID_empty, 8);
     }
 }

@@ -23,9 +23,4 @@ hal_err setup_boot0_handler() {
     return gpio_enable_interrupt(sw);
 }
 
-void EXTI3_IRQHandler(void) {
-    if (READ_BITS(EXTI->PR1, sw.num, BITMASK_1BIT)) {
-        MODIFY_BITS(EXTI->PR1, sw.num, 1, BITMASK_1BIT);
-        NVIC_SystemReset();
-    }
-}
+void exti_handler_3() { NVIC_SystemReset(); }
