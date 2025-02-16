@@ -7,7 +7,7 @@
 #include "settings.h"
 #include <stdlib.h>
 
-static const gpio_pin_t led_dbg = PIN_LED_DBG;
+static const gpio_pin_t led_dbg = PB0; // TODO: change to PIN_LED_DBG
 
 void setup_error_handler() {
     gpio_turn_on_port(led_dbg.gpio);
@@ -21,7 +21,9 @@ void error_handler(hal_err error_code) {
 
     if (error_code > 0 || error_code > -100) {
         // Unknown error
+#ifdef DEBUG
         gpio_digital_write(led_dbg, HIGH);
+#endif // DEBUG
         while (true) {
         }
     }
@@ -30,6 +32,7 @@ void error_handler(hal_err error_code) {
     int short_blinks = -error_code % 100;
 
     while (true) {
+#if DEBUG
         for (int i = 0; i < long_blinks; i++) {
             systick_delay(DBG_LONG_BLINK_DELAY);
             gpio_digital_write(led_dbg, HIGH);
@@ -42,6 +45,7 @@ void error_handler(hal_err error_code) {
             systick_delay(DBG_SHORT_BLINK_DELAY);
             gpio_digital_write(led_dbg, LOW);
         }
+#endif // DEBUG
     }
 }
 

@@ -7,6 +7,8 @@ typedef error_t hal_err;
 
 #define OK 0
 
+#define ERR_NOT_IMPL -101
+
 #define ERR_NVIC_SET_PRIO_SP_INV -201
 #define ERR_NVIC_SET_PRIO_PP_INV -202
 

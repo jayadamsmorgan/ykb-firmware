@@ -6,14 +6,15 @@
 
 hal_err mux_init(const mux_t *const mux) {
 
-#ifdef DEBUG
     if (mux->ctrls == NULL) {
         return ERR_MUX_INIT_CTRLS_NULL;
     }
     if (mux->ctrls_amount == 0) {
         return ERR_MUX_INIT_CTRLS_ZERO;
     }
-#endif // DEBUG
+    if (mux->channel_amount > mux->ctrls_amount * mux->ctrls_amount) {
+        return ERR_MUX_INV_CHAN_AMNT;
+    }
 
     for (uint8_t i = 0; i < mux->ctrls_amount; i++) {
         gpio_pin_t pin = mux->ctrls[i];
@@ -28,7 +29,7 @@ hal_err mux_init(const mux_t *const mux) {
 hal_err mux_select_channel(const mux_t *const mux, uint8_t channel) {
 
 #ifdef DEBUG
-    if (channel >= mux->ctrls_amount * mux->ctrls_amount) {
+    if (channel >= mux->channel_amount) {
         return ERR_MUX_SELECT_CHAN_INV;
     }
 #endif // DEBUG

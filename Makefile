@@ -20,6 +20,11 @@ BUILD_DIR      = build
 DEBUG_DIR      = $(BUILD_DIR)/debug
 RELEASE_DIR    = $(BUILD_DIR)/release
 
+DEBUG_LEFT_DIR   = $(DEBUG_DIR)/left
+DEBUG_RIGHT_DIR  = $(DEBUG_DIR)/right
+RELEASE_LEFT_DIR = $(RELEASE_DIR)/left
+RELEASE_RIGHT_DIR= $(RELEASE_DIR)/right
+
 # CMSIS / Device-Specific
 CMSIS_INC_DIR        = CMSIS_5/CMSIS/Core/Include
 CMSIS_DEVICE_INC_DIR = cmsis-device-wb/Include
@@ -27,8 +32,8 @@ STARTUP_SRC          = cmsis-device-wb/Source/Templates/gcc/startup_stm32wb55xx_
 SYSTEM               = cmsis-device-wb/Source/Templates/system_stm32wbxx.c
 LD_SCRIPT            = cmsis-device-wb/Source/Templates/gcc/linker/stm32wb55xx_flash_cm4.ld
 
-# We will copy (rename) the startup .s file into the build directory as .S
-STARTUP_S = $(BUILD_DIR)/startup_stm32wb55xx_cm4.S
+STARTUP_S   = $(BUILD_DIR)/startup_stm32wb55xx_cm4.S
+STARTUP_OBJ = $(BUILD_DIR)/startup_stm32wb55xx_cm4.o
 
 ###############################################################################
 # Board/MCU Definitions
@@ -39,8 +44,6 @@ MCU   = cortex-m4
 ###############################################################################
 # Sources
 ###############################################################################
-# Find all .c files in SRC_DIR, plus the system file.
-# (Remove the startup .s from the normal SRCS, since we handle it separately)
 SRCS = $(shell find $(SRC_DIR) -type f -name '*.c')
 SRCS += $(SYSTEM)
 
@@ -49,42 +52,42 @@ HEADERS = $(shell find $(INC_DIR) -type f -name '*.h')
 ###############################################################################
 # Object Files
 ###############################################################################
-# Debug object files from .c
-DEBUG_OBJS   = $(SRCS:%.c=$(DEBUG_DIR)/%.o)
-# Release object files from .c
-RELEASE_OBJS = $(SRCS:%.c=$(RELEASE_DIR)/%.o)
+DEBUG_LEFT_OBJS   = $(SRCS:%.c=$(DEBUG_LEFT_DIR)/%.o)
+DEBUG_RIGHT_OBJS  = $(SRCS:%.c=$(DEBUG_RIGHT_DIR)/%.o)
 
-# We also need object files for the startup code:
-DEBUG_STARTUP_OBJ   = $(DEBUG_DIR)/startup_stm32wb55xx_cm4.o
-RELEASE_STARTUP_OBJ = $(RELEASE_DIR)/startup_stm32wb55xx_cm4.o
+RELEASE_LEFT_OBJS   = $(SRCS:%.c=$(RELEASE_LEFT_DIR)/%.o)
+RELEASE_RIGHT_OBJS  = $(SRCS:%.c=$(RELEASE_RIGHT_DIR)/%.o)
 
 ###############################################################################
 # Compiler/Linker Flags
 ###############################################################################
 INCLUDES = -I$(INC_DIR) \
-		   -I$(CONFIG_INC_DIR) \
-		   -I$(CMSIS_INC_DIR) \
-		   -I$(CMSIS_DEVICE_INC_DIR) \
+           -I$(CONFIG_INC_DIR) \
+           -I$(CMSIS_INC_DIR) \
+           -I$(CMSIS_DEVICE_INC_DIR)
 
 COMMON_FLAGS = -Wall -Wextra -Werror \
-			   -fdata-sections -ffunction-sections \
-			   -std=gnu2x \
-			   -mlittle-endian -mthumb -mthumb-interwork \
+               -fdata-sections -ffunction-sections \
+               -std=gnu2x \
+               -mlittle-endian -mthumb -mthumb-interwork \
                -mfloat-abi=hard -mfpu=fpv4-sp-d16 -mcpu=$(MCU) -D$(BOARD) \
-			   $(INCLUDES)
+               $(INCLUDES)
 
-# Use '--specs=nosys.specs' so we don't depend on newlib syscalls
 LDFLAGS = -T $(LD_SCRIPT) --specs=nosys.specs -Wl,--gc-sections
 
-# Debug CFLAGS
 DEBUG_CFLAGS   = -g -gdwarf-2 -Og -DDEBUG
-# Release CFLAGS (adjust optimization as desired)
 RELEASE_CFLAGS = -O2
+
+LEFT_FLAG  = -DLEFT
+RIGHT_FLAG = -DRIGHT
 
 ###############################################################################
 # Top-Level Targets
 ###############################################################################
-.PHONY: clean stflash dfuflash size help
+.PHONY: clean stflash dfuflash size help \
+        debug debug-left debug-right \
+        release release-left release-right \
+        stflash-left stflash-right dfuflash-left dfuflash-right
 
 # By default, build debug
 all: debug
@@ -92,97 +95,154 @@ all: debug
 help:
 	@echo "Usage:"
 	@echo "  make [debug | release | clean | stflash | dfuflash | size]"
+	@echo "  Also you can build specific sides with e.g. debug-left, debug-right, etc."
 	@echo
 	@echo "Targets:"
-	@echo "  debug       Build with debug settings"
-	@echo "  release     Build with release settings"
-	@echo "  clean       Remove all build artifacts"
-	@echo "  stflash     Flash the built release binary to target using st-flash"
-	@echo "  dfuflash    Flash the built release binary to target using dfu-util"
-	@echo "  size        Show the size of the final ELF (release by default)"
+	@echo "  debug         Build Debug (both Left and Right)"
+	@echo "  release       Build Release (both Left and Right)"
+	@echo "  debug-left    Build Debug Left"
+	@echo "  debug-right   Build Debug Right"
+	@echo "  release-left  Build Release Left"
+	@echo "  release-right Build Release Right"
+	@echo "  clean         Remove all build artifacts"
+	@echo "  stflash       Flash the built release-right binary by default"
+	@echo "  dfuflash      Flash the built release-right binary by default"
+	@echo "  size          Show the size of release-right ELF by default"
 
 ###############################################################################
-# Debug Build
+# Aggregate Targets
 ###############################################################################
-debug: $(DEBUG_DIR)/$(PROJECT_NAME).bin
+debug: debug-left debug-right
+release: release-left release-right
 
-$(DEBUG_DIR)/$(PROJECT_NAME).elf: $(DEBUG_OBJS) $(DEBUG_STARTUP_OBJ)
-	@echo "Linking Debug..."
-	$(CC) $(COMMON_FLAGS) $(DEBUG_CFLAGS) $^ -o $@ $(LDFLAGS)
+###############################################################################
+# Debug Left
+###############################################################################
+DEBUG_LEFT_ELF = $(DEBUG_LEFT_DIR)/$(PROJECT_NAME)-left.elf
+DEBUG_LEFT_BIN = $(DEBUG_LEFT_DIR)/$(PROJECT_NAME)-left.bin
 
-# Pattern rule for building .o from .c (Debug)
-$(DEBUG_DIR)/%.o: %.c $(HEADERS)
+debug-left: $(DEBUG_LEFT_BIN)
+
+$(DEBUG_LEFT_ELF): $(DEBUG_LEFT_OBJS) $(STARTUP_OBJ)
+	@echo "Linking Debug Left..."
+	$(CC) $(COMMON_FLAGS) $(DEBUG_CFLAGS) $(LEFT_FLAG) $^ -o $@ $(LDFLAGS)
+
+$(DEBUG_LEFT_BIN): $(DEBUG_LEFT_ELF)
+	$(OBJCOPY) -O binary $< $@
+
+$(DEBUG_LEFT_DIR)/%.o: %.c $(HEADERS)
 	@mkdir -p $(dir $@)
-	$(CC) $(COMMON_FLAGS) $(DEBUG_CFLAGS) -c $< -o $@
+	$(CC) $(COMMON_FLAGS) $(DEBUG_CFLAGS) $(LEFT_FLAG) -c $< -o $@
 
-# Compile the startup .S in debug mode
-$(DEBUG_STARTUP_OBJ): $(STARTUP_S)
+###############################################################################
+# Debug Right
+###############################################################################
+DEBUG_RIGHT_ELF = $(DEBUG_RIGHT_DIR)/$(PROJECT_NAME)-right.elf
+DEBUG_RIGHT_BIN = $(DEBUG_RIGHT_DIR)/$(PROJECT_NAME)-right.bin
+
+debug-right: $(DEBUG_RIGHT_BIN)
+
+$(DEBUG_RIGHT_ELF): $(DEBUG_RIGHT_OBJS) $(STARTUP_OBJ)
+	@echo "Linking Debug Right..."
+	$(CC) $(COMMON_FLAGS) $(DEBUG_CFLAGS) $(RIGHT_FLAG) $^ -o $@ $(LDFLAGS)
+
+$(DEBUG_RIGHT_BIN): $(DEBUG_RIGHT_ELF)
+	$(OBJCOPY) -O binary $< $@
+
+$(DEBUG_RIGHT_DIR)/%.o: %.c $(HEADERS)
 	@mkdir -p $(dir $@)
-	$(CC) $(COMMON_FLAGS) $(DEBUG_CFLAGS) -c $< -o $@
+	$(CC) $(COMMON_FLAGS) $(DEBUG_CFLAGS) $(RIGHT_FLAG) -c $< -o $@
 
 ###############################################################################
-# Release Build
+# Release Left
 ###############################################################################
-release: $(RELEASE_DIR)/$(PROJECT_NAME).bin
+RELEASE_LEFT_ELF = $(RELEASE_LEFT_DIR)/$(PROJECT_NAME)-left.elf
+RELEASE_LEFT_BIN = $(RELEASE_LEFT_DIR)/$(PROJECT_NAME)-left.bin
 
-$(RELEASE_DIR)/$(PROJECT_NAME).elf: $(RELEASE_OBJS) $(RELEASE_STARTUP_OBJ)
-	@echo "Linking Release..."
-	$(CC) $(COMMON_FLAGS) $(RELEASE_CFLAGS) $^ -o $@ $(LDFLAGS)
+release-left: $(RELEASE_LEFT_BIN)
 
-# Pattern rule for building .o from .c (Release)
-$(RELEASE_DIR)/%.o: %.c $(HEADERS)
+$(RELEASE_LEFT_ELF): $(RELEASE_LEFT_OBJS) $(STARTUP_OBJ)
+	@echo "Linking Release Left..."
+	$(CC) $(COMMON_FLAGS) $(RELEASE_CFLAGS) $(LEFT_FLAG) $^ -o $@ $(LDFLAGS)
+
+$(RELEASE_LEFT_BIN): $(RELEASE_LEFT_ELF)
+	$(OBJCOPY) -O binary $< $@
+
+$(RELEASE_LEFT_DIR)/%.o: %.c $(HEADERS)
 	@mkdir -p $(dir $@)
-	$(CC) $(COMMON_FLAGS) $(RELEASE_CFLAGS) -c $< -o $@
+	$(CC) $(COMMON_FLAGS) $(RELEASE_CFLAGS) $(LEFT_FLAG) -c $< -o $@
 
-# Compile the startup .S in release mode
-$(RELEASE_STARTUP_OBJ): $(STARTUP_S)
+###############################################################################
+# Release Right
+###############################################################################
+RELEASE_RIGHT_ELF = $(RELEASE_RIGHT_DIR)/$(PROJECT_NAME)-right.elf
+RELEASE_RIGHT_BIN = $(RELEASE_RIGHT_DIR)/$(PROJECT_NAME)-right.bin
+
+release-right: $(RELEASE_RIGHT_BIN)
+
+$(RELEASE_RIGHT_ELF): $(RELEASE_RIGHT_OBJS) $(STARTUP_OBJ)
+	@echo "Linking Release Right..."
+	$(CC) $(COMMON_FLAGS) $(RELEASE_CFLAGS) $(RIGHT_FLAG) $^ -o $@ $(LDFLAGS)
+
+$(RELEASE_RIGHT_BIN): $(RELEASE_RIGHT_ELF)
+	$(OBJCOPY) -O binary $< $@
+
+$(RELEASE_RIGHT_DIR)/%.o: %.c $(HEADERS)
 	@mkdir -p $(dir $@)
-	$(CC) $(COMMON_FLAGS) $(RELEASE_CFLAGS) -c $< -o $@
+	$(CC) $(COMMON_FLAGS) $(RELEASE_CFLAGS) $(RIGHT_FLAG) -c $< -o $@
 
 ###############################################################################
-# Copy / Rename Startup File
+# Single Startup Object (common to all)
 ###############################################################################
-# Copy the original .s to build/ as .S so that it's recognized as 
-# assembly-with-preprocessing
+# Copy .s to .S so it can be preprocessed (if needed), then compile once
 $(STARTUP_S): $(STARTUP_SRC)
 	@mkdir -p $(dir $@)
 	cp $< $@
 
-###############################################################################
-# Conversion to Binary / Size
-###############################################################################
-# Convert release ELF to a binary
-$(RELEASE_DIR)/$(PROJECT_NAME).bin: $(RELEASE_DIR)/$(PROJECT_NAME).elf
-	$(OBJCOPY) -O binary $< $@
+$(STARTUP_OBJ): $(STARTUP_S)
+	@mkdir -p $(dir $@)
+	$(CC) $(COMMON_FLAGS) -c $< -o $@
 
-# Convert debug ELF to a binary
-$(DEBUG_DIR)/$(PROJECT_NAME).bin: $(DEBUG_DIR)/$(PROJECT_NAME).elf
-	$(OBJCOPY) -O binary $< $@
+###############################################################################
+# Size
+###############################################################################
+# By default, show the size of the 'release-right' ELF.
+size: size-right
 
-# Show size of the release ELF by default
-size: $(RELEASE_DIR)/$(PROJECT_NAME).elf
+size-left: $(RELEASE_LEFT_ELF)
 	@$(SIZE) $<
 
-size-debug: $(DEBUG_DIR)/$(PROJECT_NAME).elf
+size-right: $(RELEASE_RIGHT_ELF)
+	@$(SIZE) $<
+
+size-debug-left: $(DEBUG_LEFT_ELF)
+	@$(SIZE) $<
+
+size-debug-right: $(DEBUG_RIGHT_ELF)
 	@$(SIZE) $<
 
 ###############################################################################
 # Flash Targets
 ###############################################################################
-stflash: $(RELEASE_DIR)/$(PROJECT_NAME).bin
-	@echo "Flashing via st-flash..."
+# By default, flash release-right to address 0x08000000.
+stflash: stflash-right
+
+stflash-right: $(RELEASE_RIGHT_BIN)
+	@echo "Flashing (Right) via st-flash..."
 	st-flash --reset write $< 0x08000000
 
-stflash-debug: $(DEBUG_DIR)/$(PROJECT_NAME).bin
-	@echo "Flashing via st-flash..."
+stflash-left: $(RELEASE_LEFT_BIN)
+	@echo "Flashing (Left) via st-flash..."
 	st-flash --reset write $< 0x08000000
 
-dfuflash: $(RELEASE_DIR)/$(PROJECT_NAME).bin
-	@echo "Flashing via dfu-util..."
+dfuflash: dfuflash-right
+
+dfuflash-right: $(RELEASE_RIGHT_BIN)
+	@echo "Flashing (Right) via dfu-util..."
 	dfu-util -D $< -a 0 -s 0x08000000
 
-dfuflash-debug: $(DEBUG_DIR)/$(PROJECT_NAME).bin
-	@echo "Flashing via dfu-util..."
+dfuflash-left: $(RELEASE_LEFT_BIN)
+	@echo "Flashing (Left) via dfu-util..."
 	dfu-util -D $< -a 0 -s 0x08000000
 
 ###############################################################################

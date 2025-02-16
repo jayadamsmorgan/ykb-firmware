@@ -7,10 +7,13 @@
 #define ERR_MUX_INIT_CTRLS_NULL -1001
 #define ERR_MUX_INIT_CTRLS_ZERO -1002
 #define ERR_MUX_SELECT_CHAN_INV -1003
+#define ERR_MUX_INV_CHAN_AMNT -1004
 
 typedef struct {
     const gpio_pin_t *ctrls;
     const uint8_t ctrls_amount;
+
+    const uint8_t channel_amount;
 
     const gpio_pin_t common;
 } mux_t;

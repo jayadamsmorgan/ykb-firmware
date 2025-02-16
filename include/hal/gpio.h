@@ -114,8 +114,29 @@ typedef enum {
 #define PB8 (gpio_pin_t){.gpio = GPIOB, .num = 8, .adc_chan = -1}
 #define PB9 (gpio_pin_t){.gpio = GPIOB, .num = 9, .adc_chan = -1}
 
+#define PB10 (gpio_pin_t){.gpio = GPIOB, .num = 10, .adc_chan = -1}
+#define PB11 (gpio_pin_t){.gpio = GPIOB, .num = 11, .adc_chan = -1}
+#define PB12 (gpio_pin_t){.gpio = GPIOB, .num = 12, .adc_chan = -1}
+#define PB13 (gpio_pin_t){.gpio = GPIOB, .num = 13, .adc_chan = -1}
+#define PB14 (gpio_pin_t){.gpio = GPIOB, .num = 14, .adc_chan = -1}
+#define PB15 (gpio_pin_t){.gpio = GPIOB, .num = 15, .adc_chan = -1}
+
+#define PC0 (gpio_pin_t){.gpio = GPIOC, .num = 0, .adc_chan = 0}
+#define PC1 (gpio_pin_t){.gpio = GPIOC, .num = 1, .adc_chan = 1}
+#define PC2 (gpio_pin_t){.gpio = GPIOC, .num = 2, .adc_chan = 2}
+#define PC3 (gpio_pin_t){.gpio = GPIOC, .num = 3, .adc_chan = 3}
+#define PC4 (gpio_pin_t){.gpio = GPIOC, .num = 4, .adc_chan = 4}
+#define PC5 (gpio_pin_t){.gpio = GPIOC, .num = 5, .adc_chan = -1}
+#define PC6 (gpio_pin_t){.gpio = GPIOC, .num = 6, .adc_chan = -1}
+
+#define PC10 (gpio_pin_t){.gpio = GPIOC, .num = 10, .adc_chan = -1}
+#define PC11 (gpio_pin_t){.gpio = GPIOC, .num = 11, .adc_chan = -1}
+#define PC12 (gpio_pin_t){.gpio = GPIOC, .num = 12, .adc_chan = -1}
+#define PC13 (gpio_pin_t){.gpio = GPIOC, .num = 13, .adc_chan = -1}
 #define PC14 (gpio_pin_t){.gpio = GPIOC, .num = 14, .adc_chan = -1}
 #define PC15 (gpio_pin_t){.gpio = GPIOC, .num = 15, .adc_chan = -1}
+
+#define PD0 (gpio_pin_t){.gpio = GPIOD, .num = 0, .adc_chan = -1}
 
 #define PE4 (gpio_pin_t){.gpio = GPIOE, .num = 4, .adc_chan = -1}
 
