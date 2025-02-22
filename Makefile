@@ -61,6 +61,8 @@ RELEASE_RIGHT_OBJS  = $(SRCS:%.c=$(RELEASE_RIGHT_DIR)/%.o)
 ###############################################################################
 # Compiler/Linker Flags
 ###############################################################################
+GIT_HASH = $(shell git describe --dirty=+ --always)
+
 INCLUDES = -I$(INC_DIR) \
            -I$(CONFIG_INC_DIR) \
            -I$(CMSIS_INC_DIR) \
@@ -75,7 +77,7 @@ COMMON_FLAGS = -Wall -Wextra -Werror \
 
 LDFLAGS = -T $(LD_SCRIPT) --specs=nosys.specs -Wl,--gc-sections
 
-DEBUG_CFLAGS   = -g -gdwarf-2 -Og -DDEBUG
+DEBUG_CFLAGS   = -g -gdwarf-2 -Og -DDEBUG -DGIT_HASH=\"$(GIT_HASH)\"
 RELEASE_CFLAGS = -O2
 
 LEFT_FLAG  = -DLEFT

@@ -1,0 +1,14 @@
+#ifndef VERSION_H
+#define VERSION_H
+
+#include <string.h>
+
+#define DACTYL_CC_HE_FW_VERSION_BASE "0.1.0"
+
+#ifdef DEBUG
+#define DACTYL_CC_HE_FW_VERSION DACTYL_CC_HE_FW_VERSION_BASE "-" GIT_HASH
+#else
+#define DACTYL_CC_HE_FW_VERSION DACTYL_CC_HE_FW_VERSION_BASE
+#endif // DEBUG
+
+#endif // VERSION_H
