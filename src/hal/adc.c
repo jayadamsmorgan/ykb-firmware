@@ -3,6 +3,7 @@
 #include "hal/bits.h"
 #include "hal/cortex.h"
 #include "hal/hal_err.h"
+#include "hal/systick.h"
 #include "stm32wb55xx.h"
 #include "stm32wbxx.h"
 #include <stdint.h>
@@ -283,7 +284,7 @@ hal_err adc_config_channel(adc_handle_t *handle,
 
         // Mode and internal measurment channels
         // can't be updated while ADC is on
-        if (!(ADC1->CR & ADC_CR_ADEN)) {
+        if (!(READ_BIT(ADC1->CR, ADC_CR_ADEN))) {
 
             // Mode
             MODIFY_BITS(ADC1->DIFSEL, channel_config->channel,
@@ -299,7 +300,7 @@ hal_err adc_config_channel(adc_handle_t *handle,
                     /*    CPU processing cycles, scaling in us split to not */
                     /*       exceed 32 bits register capacity and handle low
                      * frequency. */
-                    uint32_t wait_loop_index;
+                    __IO uint32_t wait_loop_index;
                     wait_loop_index =
                         ((120UL / 10UL) *
                          ((SystemCoreClock / (100000UL * 2UL)) + 1UL));
@@ -322,6 +323,127 @@ hal_err adc_config_channel(adc_handle_t *handle,
             }
         }
     }
+
+    handle->lock = false;
+    return OK;
+}
+
+hal_err adc_disable(adc_handle_t *handle) {
+
+    bool adc_enabled = READ_BIT(ADC1->CR, ADC_CR_ADEN);
+    bool adc_disable_is_ongoing = READ_BIT(ADC1->CR, ADC_CR_ADDIS);
+
+    if (!adc_enabled || adc_disable_is_ongoing) {
+        return OK;
+    }
+
+    if (adc_conversion_ongoing()) {
+        SET_BIT(handle->state, HAL_ADC_STATE_ERROR_INTERNAL);
+        SET_BIT(handle->error, HAL_ADC_ERROR_INTERNAL);
+        return ERR_ADC_DISABLE_CONV_ONGOING;
+    }
+
+    uint32_t tick_start = systick_get_tick();
+
+    while (READ_BIT(ADC1->CR, ADC_CR_ADEN)) {
+        if (systick_get_tick() - tick_start > ADC_DISABLE_TIMEOUT) {
+            if (READ_BIT(ADC1->CR, ADC_CR_ADEN)) {
+                SET_BIT(handle->state, HAL_ADC_STATE_ERROR_INTERNAL);
+                SET_BIT(handle->error, HAL_ADC_ERROR_INTERNAL);
+                return ERR_ADC_DISABLE_TIMEOUT;
+            }
+        }
+    }
+
+    return OK;
+}
+
+hal_err adc_enable(adc_handle_t *handle) {
+
+    // Nothing to do if already enabled
+    if (READ_BIT(ADC1->CR, ADC_CR_ADEN)) {
+        return OK;
+    }
+
+    // Requirements
+    if ((ADC1->CR &
+         (ADC_CR_ADCAL | ADC_CR_JADSTP | ADC_CR_ADSTP | ADC_CR_JADSTART |
+          ADC_CR_ADSTART | ADC_CR_ADDIS | ADC_CR_ADEN))) {
+        SET_BIT(handle->state, HAL_ADC_STATE_ERROR_INTERNAL);
+        SET_BIT(handle->error, HAL_ADC_ERROR_INTERNAL);
+        return ERR_ADC_ENABLE_REQUIREMENTS;
+    }
+
+    // Enable ADC
+    SET_BIT(ADC1->CR, ADC_CR_ADEN);
+
+    // Delay for temperature sensor buffer stabilization time
+    if (READ_BIT(ADC1_COMMON->CCR, ADC_CCR_TSEN)) {
+        uint32_t wait_loop_index =
+            ((15UL / 10UL) * ((SystemCoreClock / (100000UL * 2UL)) + 1UL));
+        while (wait_loop_index) {
+            wait_loop_index--;
+        }
+    }
+
+    uint32_t tick_start = systick_get_tick();
+
+    while (READ_BIT(ADC1->ISR, ADC_ISR_ADRDY) == 0UL) {
+        /*  If ADEN bit is set less than 4 ADC clock cycles after the ADCAL bit
+            has been cleared (after a calibration), ADEN bit is reset by the
+            calibration logic.
+            The workaround is to continue setting ADEN until ADRDY is becomes 1.
+            Additionally, ADC_ENABLE_TIMEOUT is defined to encompass this
+            4 ADC clock cycle duration */
+        if (!READ_BIT(ADC1->CR, ADC_CR_ADEN)) {
+            SET_BIT(ADC1->CR, ADC_CR_ADEN);
+        }
+
+        if (systick_get_tick() - tick_start > ADC_ENABLE_TIMEOUT) {
+            SET_BIT(handle->state, HAL_ADC_STATE_ERROR_INTERNAL);
+            SET_BIT(handle->error, HAL_ADC_ERROR_INTERNAL);
+            return ERR_ADC_ENABLE_TIMEOUT;
+        }
+    }
+
+    return OK;
+}
+
+hal_err adc_start_calibration(adc_handle_t *handle, adc_channel_mode mode) {
+
+    if (handle->lock) {
+        return ERR_ADC_CALIB_BUSY;
+    }
+    handle->lock = true;
+
+    hal_err err = adc_disable(handle);
+    if (err) {
+        handle->lock = false;
+        return err;
+    }
+
+    MODIFY_REG(handle->state, HAL_ADC_STATE_REG_BUSY | HAL_ADC_STATE_INJ_BUSY,
+               HAL_ADC_STATE_BUSY_INTERNAL);
+
+    // Start calibration
+    if (mode == ADC_CHANNEL_DIFFERENTIAL) {
+        SET_BIT(ADC1->CR, ADC_CR_ADCALDIF);
+    }
+    SET_BIT(ADC1->CR, ADC_CR_ADCAL);
+
+    // Wait for calibration to finish
+    uint32_t wait_loop_index = 0UL;
+    while (READ_BIT(ADC1->CR, ADC_CR_ADCAL)) {
+        wait_loop_index++;
+        if (wait_loop_index >= ADC_CALIBRATION_TIMEOUT) {
+            MODIFY_REG(handle->state, HAL_ADC_STATE_BUSY_INTERNAL,
+                       HAL_ADC_STATE_ERROR_INTERNAL);
+            handle->lock = false;
+            return ERR_ADC_CALIB_TIMEOUT;
+        }
+    }
+
+    MODIFY_REG(handle->state, HAL_ADC_STATE_BUSY_INTERNAL, HAL_ADC_STATE_READY);
 
     handle->lock = false;
     return OK;

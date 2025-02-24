@@ -35,6 +35,10 @@
 #define HAL_ADC_ERROR_DMA (0x04U)
 #define HAL_ADC_ERROR_JQOVF (0x08U)
 
+#define ADC_ENABLE_TIMEOUT (2UL)
+#define ADC_DISABLE_TIMEOUT (2UL)
+#define ADC_CALIBRATION_TIMEOUT (158379UL)
+
 typedef enum {
     ADC_CLOCK_MODE_ASYNC = 0U,
     ADC_CLOCK_MODE_HCLK_DIV1 = 1U,
@@ -352,5 +356,7 @@ hal_err adc_init(adc_handle_t *handle);
 
 hal_err adc_config_channel(adc_handle_t *handle,
                            const adc_channel_config_t *channel_config);
+
+hal_err adc_start_calibration(adc_handle_t *handle, adc_channel_mode mode);
 
 #endif // HAL_ADC_H
