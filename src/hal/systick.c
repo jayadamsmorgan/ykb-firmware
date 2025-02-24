@@ -1,6 +1,7 @@
 #include "hal/systick.h"
 
 #include "hal/cortex.h"
+#include "utils/utils.h"
 
 systick_frequency systick_freq = SYSTICK_FREQ_1KHZ;
 volatile uint32_t tick;
@@ -28,4 +29,4 @@ void systick_delay(uint32_t ms) {
     }
 }
 
-void SysTick_Handler(void) { tick += (uint32_t)systick_freq; }
+__weak void SysTick_Handler(void) { tick += (uint32_t)systick_freq; }
