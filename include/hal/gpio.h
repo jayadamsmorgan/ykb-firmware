@@ -65,24 +65,6 @@ typedef enum {
     GPIO_CALIB_INPUT_DIFFERENTIAL,
 } gpio_calib_input_mode;
 
-typedef enum {
-    GPIO_ADC_SMP_2_5_CYCLES = 0b000,
-    GPIO_ADC_SMP_6_5_CYCLES = 0b001,
-    GPIO_ADC_SMP_12_5_CYCLES = 0b010,
-    GPIO_ADC_SMP_24_5_CYCLES = 0b011,
-    GPIO_ADC_SMP_47_5_CYCLES = 0b100,
-    GPIO_ADC_SMP_92_5_CYCLES = 0b101,
-    GPIO_ADC_SMP_247_5_CYCLES = 0b110,
-    GPIO_ADC_SMP_640_5_CYCLES = 0b111,
-} gpio_adc_sampling_time;
-
-typedef enum {
-    GPIO_ADC_RES_12BIT = 0b00,
-    GPIO_ADC_RES_10BIT = 0b01,
-    GPIO_ADC_RES_8BIT = 0b10,
-    GPIO_ADC_RES_6BIT = 0b11,
-} gpio_adc_resolution;
-
 // PINS
 
 #define PA0 (gpio_pin_t){.gpio = GPIOA, .num = 0, .adc_chan = 5}
@@ -169,10 +151,6 @@ hal_err gpio_adc_calibrate(gpio_calib_input_mode mode,
 // Requires `gpio_adc_calibrate()`, `gpio_adc_start()`
 hal_err gpio_adc_apply_calibration(gpio_calib_input_mode mode,
                                    uint8_t calibration_factor);
-
-hal_err gpio_adc_set_sampling_time(gpio_pin_t pin, gpio_adc_sampling_time time);
-
-hal_err gpio_adc_set_resolution(gpio_adc_resolution resolution);
 
 void gpio_digital_write(gpio_pin_t pin, bool val);
 

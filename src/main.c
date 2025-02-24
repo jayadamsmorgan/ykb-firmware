@@ -7,6 +7,7 @@
 #include "keyboard.h"
 #include "test_button_handler.h"
 #include "usb.h"
+#include "version.h"
 
 int main(void) {
     system_init();
@@ -27,6 +28,8 @@ int main(void) {
     ERR_H(setup_usb());
 
     ERR_H(setup_test_button_handler());
+
+    (void)DACTYL_CC_HE_FW_VERSION;
 
     while (true) {
         kb_handle(true);

@@ -117,15 +117,15 @@ hal_err kb_init() {
     hal_err err;
 
     // Init ADC:
-    err = gpio_adc_calibrate(GPIO_CALIB_INPUT_SINGLE_ENDED, NULL);
-    if (err) {
-        return err;
-    }
-    gpio_adc_start();
-    err = gpio_adc_set_resolution(GPIO_ADC_RES_10BIT);
-    if (err) {
-        return err;
-    }
+    // err = gpio_adc_calibrate(GPIO_CALIB_INPUT_SINGLE_ENDED, NULL);
+    // if (err) {
+    //     return err;
+    // }
+    // gpio_adc_start();
+    // err = gpio_adc_set_resolution(GPIO_ADC_RES_10BIT);
+    // if (err) {
+    //     return err;
+    // }
 
     // Init MUXes:
     for (uint8_t i = 0; i < 3; i++) {
@@ -136,7 +136,8 @@ hal_err kb_init() {
             return err;
         }
 
-        err = gpio_adc_set_sampling_time(mux.common, GPIO_ADC_SMP_2_5_CYCLES);
+        // err = gpio_adc_set_sampling_time(mux.common,
+        // GPIO_ADC_SMP_2_5_CYCLES);
         if (err) {
             return err;
         }
@@ -220,8 +221,8 @@ error_t kb_set_min_threshold(uint32_t threshold, bool blocking) {
 static inline hal_err kb_key_pressed_by_threshold(mux_t *mux, uint8_t channel,
                                                   uint16_t *const value) {
     mux_select_channel(mux, channel);
-    uint32_t mux_value;
-    hal_err err = gpio_analog_read(mux->common, &mux_value);
+    uint32_t mux_value = 0;
+    hal_err err = OK; // = gpio_analog_read(mux->common, &mux_value);
     if (err) {
 #ifdef DEBUG
         // TODO: error occured, debug it to serial
