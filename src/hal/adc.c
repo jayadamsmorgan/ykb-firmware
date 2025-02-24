@@ -2,6 +2,7 @@
 
 #include "hal/bits.h"
 #include "hal/cortex.h"
+#include "hal/hal.h"
 #include "hal/hal_err.h"
 #include "hal/systick.h"
 #include "stm32wb55xx.h"
@@ -9,14 +10,18 @@
 #include <stdint.h>
 #include <stdio.h>
 
-hal_err adc_init(adc_handle_t *handle) {
+static volatile adc_handle_t hal_adc_handle;
+
+hal_err adc_init(const adc_init_t *init) {
+
+    volatile adc_handle_t *handle = &hal_adc_handle;
 
     if (handle->lock) {
         return ERR_ADC_INIT_BUSY;
     }
     handle->lock = true;
 
-    adc_init_t *init = &handle->init;
+    handle->init = *init;
 
     if (init->sequence_mode == ADC_SEQUENCE_DISCONTINUOUS &&
         init->conversion_mode == ADC_CONV_SEQUENCE) {
@@ -113,7 +118,7 @@ hal_err adc_init(adc_handle_t *handle) {
 
     // ADC trigger source config
     if (init->trigger_source != ADC_TRIGGER_SOFTWARE) {
-        init->trigger_edge = ADC_TRIGGER_EDGE_RISING;
+        handle->init.trigger_edge = ADC_TRIGGER_EDGE_RISING;
         tmp_reg |= init->trigger_source;
         MODIFY_BITS(tmp_reg, ADC_CFGR_EXTEN_Pos, init->trigger_edge,
                     BITMASK_2BIT);
@@ -195,8 +200,9 @@ static inline uint8_t channel_offset_read_channel(uint32_t reg) {
     return ((reg >> ADC_OFR1_OFFSET1_CH_Pos) & BITMASK_5BIT);
 }
 
-hal_err adc_config_channel(adc_handle_t *handle,
-                           const adc_channel_config_t *channel_config) {
+hal_err adc_config_channel(const adc_channel_config_t *channel_config) {
+
+    volatile adc_handle_t *handle = &hal_adc_handle;
 
     if (handle->lock) {
         return ERR_ADC_CHCONF_BUSY;
@@ -328,7 +334,9 @@ hal_err adc_config_channel(adc_handle_t *handle,
     return OK;
 }
 
-hal_err adc_disable(adc_handle_t *handle) {
+hal_err adc_disable() {
+
+    volatile adc_handle_t *handle = &hal_adc_handle;
 
     bool adc_enabled = READ_BIT(ADC1->CR, ADC_CR_ADEN);
     bool adc_disable_is_ongoing = READ_BIT(ADC1->CR, ADC_CR_ADDIS);
@@ -358,7 +366,9 @@ hal_err adc_disable(adc_handle_t *handle) {
     return OK;
 }
 
-hal_err adc_enable(adc_handle_t *handle) {
+hal_err adc_enable() {
+
+    volatile adc_handle_t *handle = &hal_adc_handle;
 
     // Nothing to do if already enabled
     if (READ_BIT(ADC1->CR, ADC_CR_ADEN)) {
@@ -409,14 +419,16 @@ hal_err adc_enable(adc_handle_t *handle) {
     return OK;
 }
 
-hal_err adc_start_calibration(adc_handle_t *handle, adc_channel_mode mode) {
+hal_err adc_start_calibration(adc_channel_mode mode) {
+
+    volatile adc_handle_t *handle = &hal_adc_handle;
 
     if (handle->lock) {
         return ERR_ADC_CALIB_BUSY;
     }
     handle->lock = true;
 
-    hal_err err = adc_disable(handle);
+    hal_err err = adc_disable();
     if (err) {
         handle->lock = false;
         return err;
@@ -446,5 +458,162 @@ hal_err adc_start_calibration(adc_handle_t *handle, adc_channel_mode mode) {
     MODIFY_REG(handle->state, HAL_ADC_STATE_BUSY_INTERNAL, HAL_ADC_STATE_READY);
 
     handle->lock = false;
+    return OK;
+}
+
+hal_err adc_conversion_stop(adc_conversion_group group) {
+
+    if (!adc_conversion_ongoing()) {
+        return OK;
+    }
+
+    volatile adc_handle_t *handle = &hal_adc_handle;
+
+    if ((ADC1->CFGR & ADC_CFGR_JAUTO) &&
+        handle->init.conversion_mode == ADC_CONV_SEQUENCE &&
+        handle->init.lp_autowait == ADC_LP_AUTOWAIT_ENABLE) {
+
+        group = ADC_CONVERSION_GROUP_REGULAR;
+
+        uint32_t conversion_timeout = 0UL;
+
+        while (!(ADC1->ISR & ADC_ISR_JEOS)) {
+            if (conversion_timeout >= ADC_CONVERSION_TIMEOUT * 4UL) {
+                SET_BIT(handle->state, HAL_ADC_STATE_ERROR_INTERNAL);
+                SET_BIT(handle->error, HAL_ADC_ERROR_INTERNAL);
+                return ERR_ADC_STOPCONV_TIMEOUT;
+            }
+            conversion_timeout++;
+        }
+        SET_BIT(ADC1->ISR, ADC_ISR_JEOS);
+    }
+
+    if (group != ADC_CONVERSION_GROUP_INJECTED) {
+        if (adc_conversion_ongoing_regular()) {
+            if (!(ADC1->CR & ADC_CR_ADDIS)) {
+                SET_BIT(ADC1->CR, ADC_CR_ADSTP);
+            }
+        }
+    }
+
+    if (group != ADC_CONVERSION_GROUP_REGULAR) {
+        if (adc_conversion_ongoing_injected()) {
+            if (!(ADC1->CR & ADC_CR_ADDIS)) {
+                SET_BIT(ADC1->CR, ADC_CR_JADSTP);
+            }
+        }
+    }
+
+    uint32_t tick_start = systick_get_tick();
+
+    while (ADC1->CR & group) {
+        if ((systick_get_tick() - tick_start) > ADC_STOP_CONVERSION_TIMEOUT) {
+            if (ADC1->CR & group) {
+                SET_BIT(handle->state, HAL_ADC_STATE_ERROR_INTERNAL);
+                SET_BIT(handle->error, HAL_ADC_ERROR_INTERNAL);
+                return ERR_ADC_STOPCONV_TIMEOUT;
+            }
+        }
+    }
+
+    return OK;
+}
+
+hal_err adc_start_it() {
+
+    volatile adc_handle_t *handle = &hal_adc_handle;
+
+    if (adc_conversion_ongoing_regular()) {
+        return ERR_ADC_STARTIT_CONV_ONGOING;
+    }
+
+    if (handle->lock) {
+        return ERR_ADC_STARTIT_BUSY;
+    }
+    handle->lock = true;
+
+    hal_err err = adc_enable();
+    if (err) {
+        handle->lock = false;
+        return err;
+    }
+
+    MODIFY_REG(handle->state,
+               HAL_ADC_STATE_READY | HAL_ADC_STATE_REG_EOC |
+                   HAL_ADC_STATE_REG_OVR | HAL_ADC_STATE_REG_EOSMP,
+               HAL_ADC_STATE_REG_BUSY);
+
+    if ((handle->state & HAL_ADC_STATE_INJ_BUSY)) {
+        CLEAR_BIT(handle->error, (HAL_ADC_ERROR_OVR | HAL_ADC_ERROR_DMA));
+    } else {
+        handle->error = HAL_ADC_ERROR_NONE;
+    }
+
+    WRITE_REG(ADC1->ISR, ADC_ISR_EOC | ADC_ISR_EOS | ADC_ISR_OVR);
+
+    handle->lock = false;
+
+    CLEAR_BIT(ADC1->IER, ADC_IER_EOCIE | ADC_IER_EOSIE | ADC_IER_OVRIE);
+
+    switch (handle->init.eoc_flag) {
+    case ADC_EOC_SINGLE_CONVERSION:
+        SET_BIT(ADC1->IER, ADC_IER_EOCIE);
+        break;
+    case ADC_EOC_SEQ_CONVERSION:
+        SET_BIT(ADC1->IER, ADC_IER_EOSIE);
+        break;
+    }
+
+    if (handle->init.overrun_mode == ADC_OVERRUN_DATA_PRESERVED) {
+        SET_BIT(ADC1->IER, ADC_IER_OVRIE);
+    }
+
+    SET_BIT(ADC1->CR, ADC_CR_ADSTART);
+
+    return OK;
+}
+
+hal_err adc_stop_it() {
+
+    volatile adc_handle_t *handle = &hal_adc_handle;
+
+    if (handle->lock) {
+        return ERR_ADC_STOPIT_BUSY;
+    }
+    handle->lock = true;
+
+    hal_err err;
+
+    err = adc_conversion_stop(ADC_CONVERSION_GROUP_REGULAR_INJECTED);
+    if (err) {
+        return err;
+    }
+
+    CLEAR_BIT(ADC1->IER, ADC_IER_EOCIE | ADC_IER_EOSIE | ADC_IER_OVRIE);
+
+    err = adc_disable();
+    if (err) {
+        return err;
+    }
+
+    MODIFY_REG(handle->state, HAL_ADC_STATE_REG_BUSY | HAL_ADC_STATE_INJ_BUSY,
+               HAL_ADC_STATE_READY);
+
+    handle->lock = false;
+    return OK;
+}
+
+__weak void ADC1_IRQHandler(void) {
+
+    // if ((ADC1->IER & ADC_IER_EOSIE) && (ADC1->ISR & ADC_ISR_EOS)) {
+    //     if ()
+    // }
+}
+
+adc_handle_t *adc_get_handle() { return (adc_handle_t *)&hal_adc_handle; }
+
+hal_err adc_read_blocking(uint32_t *value) {
+    (void)(value);
+
     return OK;
 }

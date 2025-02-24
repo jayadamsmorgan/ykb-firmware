@@ -38,6 +38,8 @@
 #define ADC_ENABLE_TIMEOUT (2UL)
 #define ADC_DISABLE_TIMEOUT (2UL)
 #define ADC_CALIBRATION_TIMEOUT (158379UL)
+#define ADC_CONVERSION_TIMEOUT (653UL * 4096UL * 256UL)
+#define ADC_STOP_CONVERSION_TIMEOUT (5UL)
 
 typedef enum {
     ADC_CLOCK_MODE_ASYNC = 0U,
@@ -339,6 +341,12 @@ typedef struct {
 
 } adc_channel_config_t;
 
+typedef enum {
+    ADC_CONVERSION_GROUP_REGULAR = ADC_CR_ADSTART,
+    ADC_CONVERSION_GROUP_INJECTED = ADC_CR_JADSTART,
+    ADC_CONVERSION_GROUP_REGULAR_INJECTED = ADC_CR_ADSTART | ADC_CR_JADSTART,
+} adc_conversion_group;
+
 static inline bool adc_conversion_ongoing_regular() {
     return READ_BIT(ADC1->CR, ADC_CR_ADSTART) == ADC_CR_ADSTART;
 }
@@ -352,11 +360,20 @@ static inline bool adc_conversion_ongoing() {
            adc_conversion_ongoing_injected();
 }
 
-hal_err adc_init(adc_handle_t *handle);
+hal_err adc_conversion_stop(adc_conversion_group group);
 
-hal_err adc_config_channel(adc_handle_t *handle,
-                           const adc_channel_config_t *channel_config);
+hal_err adc_init(const adc_init_t *init);
 
-hal_err adc_start_calibration(adc_handle_t *handle, adc_channel_mode mode);
+adc_handle_t *adc_get_handle();
+
+hal_err adc_config_channel(const adc_channel_config_t *channel_config);
+
+hal_err adc_enable();
+hal_err adc_disable();
+
+hal_err adc_start_calibration(adc_channel_mode mode);
+
+hal_err adc_start_it();
+hal_err adc_stop_it();
 
 #endif // HAL_ADC_H

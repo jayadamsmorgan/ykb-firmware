@@ -7,7 +7,7 @@ typedef error_t hal_err;
 
 #define OK 0
 
-#define ERR_NOT_IMPL -101
+#define ERR_NOT_IMPLEMENTED -101
 
 #define ERR_NVIC_SET_PRIO_SP_INV -201
 #define ERR_NVIC_SET_PRIO_PP_INV -202
@@ -40,5 +40,9 @@ typedef error_t hal_err;
 #define ERR_ADC_ENABLE_TIMEOUT -813
 #define ERR_ADC_CALIB_BUSY -814
 #define ERR_ADC_CALIB_TIMEOUT -815
+#define ERR_ADC_STARTIT_CONV_ONGOING -816
+#define ERR_ADC_STARTIT_BUSY -817
+#define ERR_ADC_STOPIT_BUSY -818
+#define ERR_ADC_STOPCONV_TIMEOUT -819
 
 #endif // HAL_ERR_H
