@@ -2,11 +2,11 @@
 
 #include "hal/bits.h"
 #include "hal/cortex.h"
-#include "hal/hal.h"
 #include "hal/hal_err.h"
 #include "hal/systick.h"
 #include "stm32wb55xx.h"
 #include "stm32wbxx.h"
+#include "utils/utils.h"
 #include <stdint.h>
 #include <stdio.h>
 
@@ -603,11 +603,117 @@ hal_err adc_stop_it() {
     return OK;
 }
 
+__weak void adc_sampling_complete_callback(adc_handle_t *handle) {
+    UNUSED(handle);
+}
+
+__weak void
+adc_regular_conversion_complete_callback(adc_handle_t *handle,
+                                         adc_conversion_trigger trigger) {
+    UNUSED(handle);
+    UNUSED(trigger);
+}
+
+__weak void
+adc_injected_conversion_complete_callback(adc_handle_t *handle,
+                                          adc_conversion_trigger trigger) {
+    UNUSED(handle);
+    UNUSED(trigger);
+}
+
 __weak void ADC1_IRQHandler(void) {
 
-    // if ((ADC1->IER & ADC_IER_EOSIE) && (ADC1->ISR & ADC_ISR_EOS)) {
-    //     if ()
-    // }
+    volatile adc_handle_t *handle = &hal_adc_handle;
+
+    adc_conversion_trigger trigger = ADC_CONVERSION_TRIGGER_EOC;
+
+    if ((ADC1->IER & ADC_IER_EOSMPIE) && (ADC1->ISR & ADC_ISR_EOSMP)) {
+        if (!(handle->state & HAL_ADC_STATE_ERROR_INTERNAL)) {
+            SET_BIT(handle->state, HAL_ADC_STATE_REG_EOSMP);
+        }
+        adc_sampling_complete_callback((adc_handle_t *)handle);
+        SET_BIT(ADC1->ISR, ADC_ISR_EOSMP);
+    }
+
+    if (((ADC1->IER & ADC_IER_EOCIE) && (ADC1->ISR & ADC_ISR_EOC)) ||
+        ((ADC1->IER & ADC_IER_EOSIE) && (ADC1->ISR & ADC_ISR_EOS))) {
+
+        if (!(handle->state & HAL_ADC_ERROR_INTERNAL)) {
+            SET_BIT(handle->state, HAL_ADC_STATE_REG_EOC);
+        }
+
+        if ((READ_BIT(ADC1->CFGR, ADC_CFGR_EXTEN) == (0UL & ADC_CFGR_EXTEN)) &&
+            READ_BIT(ADC1->CFGR, ADC_CFGR_CONT) &&
+            READ_BIT(ADC1->ISR, ADC_ISR_EOS)) {
+            if (!adc_conversion_ongoing_regular()) {
+                CLEAR_BIT(ADC1->IER, ADC_IER_EOCIE | ADC_IER_EOSIE);
+
+                CLEAR_BIT(handle->state, HAL_ADC_STATE_REG_BUSY);
+                if (!(handle->state & HAL_ADC_STATE_INJ_BUSY)) {
+                    SET_BIT(handle->state, HAL_ADC_STATE_READY);
+                }
+            } else {
+                SET_BIT(handle->state, HAL_ADC_STATE_ERROR_INTERNAL);
+                SET_BIT(handle->error, HAL_ADC_ERROR_INTERNAL);
+            }
+        }
+
+        if (READ_BIT(ADC1->ISR, ADC_ISR_EOS)) {
+            trigger = ADC_CONVERSION_TRIGGER_EOS;
+        }
+        adc_regular_conversion_complete_callback((adc_handle_t *)handle,
+                                                 trigger);
+
+        SET_BIT(ADC1->ISR, ADC_ISR_EOC | ADC_ISR_EOS);
+    }
+
+    if (((ADC1->IER & ADC_IER_JEOCIE) && (ADC1->ISR & ADC_ISR_JEOC)) ||
+        ((ADC1->IER & ADC_IER_JEOSIE) && (ADC1->ISR & ADC_ISR_JEOS))) {
+
+        if (!(handle->state & HAL_ADC_ERROR_INTERNAL)) {
+            SET_BIT(handle->state, HAL_ADC_STATE_INJ_EOC);
+        }
+
+        bool inj_is_trigger_source_sw_start = ((
+            READ_BIT(ADC1->JSQR, ADC_JSQR_JEXTEN) == (0UL & ADC_JSQR_JEXTEN)));
+        bool reg_is_trigger_source_sw_start =
+            ((READ_BIT(ADC1->CFGR, ADC_CFGR_EXTEN) == (0UL & ADC_CFGR_EXTEN)));
+
+        if (inj_is_trigger_source_sw_start &&
+            (!(READ_BIT(ADC1->CFGR, ADC_CFGR_JAUTO)) ||
+             (reg_is_trigger_source_sw_start &&
+              !(READ_BIT(ADC1->CFGR, ADC_CFGR_CONT))))) {
+
+            if (READ_BIT(ADC1->ISR, ADC_ISR_JEOS)) {
+
+                if (!(READ_BIT(ADC1->CFGR, ADC_CFGR_JQM))) {
+
+                    if (!adc_conversion_ongoing()) {
+
+                        CLEAR_BIT(ADC1->IER, ADC_IER_JEOCIE | ADC_IER_JEOSIE);
+                        if (!(handle->state & HAL_ADC_STATE_REG_BUSY)) {
+                            SET_BIT(handle->state, HAL_ADC_STATE_READY);
+                        }
+
+                    } else {
+                        SET_BIT(handle->state, HAL_ADC_STATE_ERROR_INTERNAL);
+                        SET_BIT(handle->error, HAL_ADC_ERROR_INTERNAL);
+                    }
+                }
+            }
+        }
+
+        if (READ_BIT(ADC1->ISR, ADC_ISR_JEOS)) {
+            trigger = ADC_CONVERSION_TRIGGER_EOS;
+        }
+
+        adc_injected_conversion_complete_callback((adc_handle_t *)handle,
+                                                  trigger);
+
+        SET_BIT(ADC1->ISR, ADC_ISR_JEOC | ADC_ISR_JEOS);
+    }
+
+    // TODO: Check AWD flags, overrun flag, JQOVF flag
 }
 
 adc_handle_t *adc_get_handle() { return (adc_handle_t *)&hal_adc_handle; }

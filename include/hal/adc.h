@@ -347,6 +347,11 @@ typedef enum {
     ADC_CONVERSION_GROUP_REGULAR_INJECTED = ADC_CR_ADSTART | ADC_CR_JADSTART,
 } adc_conversion_group;
 
+typedef enum {
+    ADC_CONVERSION_TRIGGER_EOC,
+    ADC_CONVERSION_TRIGGER_EOS,
+} adc_conversion_trigger;
+
 static inline bool adc_conversion_ongoing_regular() {
     return READ_BIT(ADC1->CR, ADC_CR_ADSTART) == ADC_CR_ADSTART;
 }
