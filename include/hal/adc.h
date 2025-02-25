@@ -249,6 +249,21 @@ typedef struct {
 
 } adc_init_t;
 
+typedef enum {
+    ADC_CONVERSION_TRIGGER_EOC,
+    ADC_CONVERSION_TRIGGER_EOS,
+} adc_conversion_trigger;
+
+typedef struct {
+
+    void (*sampling_complete)();
+
+    void (*regular_conversion_complete)(adc_conversion_trigger trigger);
+
+    void (*injected_conversion_complete)(adc_conversion_trigger trigger);
+
+} adc_callbacks_t;
+
 typedef struct {
 
     adc_init_t init;
@@ -257,6 +272,8 @@ typedef struct {
 
     __IO uint32_t state;
     __IO uint32_t error;
+
+    adc_callbacks_t callbacks;
 
     bool lock;
 
@@ -347,11 +364,6 @@ typedef enum {
     ADC_CONVERSION_GROUP_REGULAR_INJECTED = ADC_CR_ADSTART | ADC_CR_JADSTART,
 } adc_conversion_group;
 
-typedef enum {
-    ADC_CONVERSION_TRIGGER_EOC,
-    ADC_CONVERSION_TRIGGER_EOS,
-} adc_conversion_trigger;
-
 static inline bool adc_conversion_ongoing_regular() {
     return READ_BIT(ADC1->CR, ADC_CR_ADSTART) == ADC_CR_ADSTART;
 }
@@ -368,6 +380,8 @@ static inline bool adc_conversion_ongoing() {
 hal_err adc_conversion_stop(adc_conversion_group group);
 
 hal_err adc_init(const adc_init_t *init);
+
+void adc_set_callbacks(adc_callbacks_t callbacks);
 
 adc_handle_t *adc_get_handle();
 

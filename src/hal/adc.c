@@ -603,22 +603,8 @@ hal_err adc_stop_it() {
     return OK;
 }
 
-__weak void adc_sampling_complete_callback(adc_handle_t *handle) {
-    UNUSED(handle);
-}
-
-__weak void
-adc_regular_conversion_complete_callback(adc_handle_t *handle,
-                                         adc_conversion_trigger trigger) {
-    UNUSED(handle);
-    UNUSED(trigger);
-}
-
-__weak void
-adc_injected_conversion_complete_callback(adc_handle_t *handle,
-                                          adc_conversion_trigger trigger) {
-    UNUSED(handle);
-    UNUSED(trigger);
+void adc_set_callbacks(adc_callbacks_t callbacks) {
+    hal_adc_handle.callbacks = callbacks;
 }
 
 __weak void ADC1_IRQHandler(void) {
@@ -631,7 +617,9 @@ __weak void ADC1_IRQHandler(void) {
         if (!(handle->state & HAL_ADC_STATE_ERROR_INTERNAL)) {
             SET_BIT(handle->state, HAL_ADC_STATE_REG_EOSMP);
         }
-        adc_sampling_complete_callback((adc_handle_t *)handle);
+        if (handle->callbacks.sampling_complete) {
+            handle->callbacks.sampling_complete();
+        }
         SET_BIT(ADC1->ISR, ADC_ISR_EOSMP);
     }
 
@@ -661,8 +649,9 @@ __weak void ADC1_IRQHandler(void) {
         if (READ_BIT(ADC1->ISR, ADC_ISR_EOS)) {
             trigger = ADC_CONVERSION_TRIGGER_EOS;
         }
-        adc_regular_conversion_complete_callback((adc_handle_t *)handle,
-                                                 trigger);
+        if (handle->callbacks.regular_conversion_complete) {
+            handle->callbacks.regular_conversion_complete(trigger);
+        }
 
         SET_BIT(ADC1->ISR, ADC_ISR_EOC | ADC_ISR_EOS);
     }
@@ -707,8 +696,9 @@ __weak void ADC1_IRQHandler(void) {
             trigger = ADC_CONVERSION_TRIGGER_EOS;
         }
 
-        adc_injected_conversion_complete_callback((adc_handle_t *)handle,
-                                                  trigger);
+        if (handle->callbacks.injected_conversion_complete) {
+            handle->callbacks.injected_conversion_complete(trigger);
+        }
 
         SET_BIT(ADC1->ISR, ADC_ISR_JEOC | ADC_ISR_JEOS);
     }
