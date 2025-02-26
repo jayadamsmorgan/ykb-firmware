@@ -24,7 +24,7 @@ hal_err adc_init(const adc_init_t *init) {
     handle->init = *init;
 
     if (init->sequence_mode == ADC_SEQUENCE_DISCONTINUOUS &&
-        init->conversion_mode == ADC_CONV_SEQUENCE) {
+        init->conversion_mode == ADC_CONVERSION_SEQUENCE) {
         return ERR_ADC_INIT_INV_SEQ_CONV;
     }
 
@@ -211,7 +211,8 @@ hal_err adc_config_channel(const adc_channel_config_t *channel_config) {
 
     // Check channel offset
     uint16_t max_offset = 0xFFFU >> (handle->init.resolution * 2);
-    if (channel_config->offset > max_offset) {
+    if (channel_config->offset_type != ADC_CHANNEL_OFFSET_NONE &&
+        channel_config->offset > max_offset) {
         handle->lock = false;
         return ERR_ADC_CHCONF_INV_OFFSET;
     }
@@ -470,7 +471,7 @@ hal_err adc_conversion_stop(adc_conversion_group group) {
     volatile adc_handle_t *handle = &hal_adc_handle;
 
     if ((ADC1->CFGR & ADC_CFGR_JAUTO) &&
-        handle->init.conversion_mode == ADC_CONV_SEQUENCE &&
+        handle->init.conversion_mode == ADC_CONVERSION_SEQUENCE &&
         handle->init.lp_autowait == ADC_LP_AUTOWAIT_ENABLE) {
 
         group = ADC_CONVERSION_GROUP_REGULAR;
@@ -707,9 +708,3 @@ __weak void ADC1_IRQHandler(void) {
 }
 
 adc_handle_t *adc_get_handle() { return (adc_handle_t *)&hal_adc_handle; }
-
-hal_err adc_read_blocking(uint32_t *value) {
-    (void)(value);
-
-    return OK;
-}

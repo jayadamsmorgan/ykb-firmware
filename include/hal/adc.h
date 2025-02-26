@@ -92,8 +92,8 @@ typedef enum {
 } adc_eoc_flag;
 
 typedef enum {
-    ADC_CONV_SINGLE = 0U,
-    ADC_CONV_SEQUENCE = 1U,
+    ADC_CONVERSION_SINGLE = 0U,
+    ADC_CONVERSION_SEQUENCE = 1U,
 } adc_conversion_mode;
 
 typedef enum {
@@ -178,14 +178,14 @@ typedef enum {
 } adc_oversampling_regular_mode;
 
 typedef enum {
-    ADC_1_CHANNEL = 0U,
-    ADC_2_CHANNELS = 1U,
-    ADC_3_CHANNELS = 2U,
-    ADC_4_CHANNELS = 3U,
-    ADC_5_CHANNELS = 4U,
-    ADC_6_CHANNELS = 5U,
-    ADC_7_CHANNELS = 6U,
-    ADC_8_CHANNELS = 7U,
+    ADC_SEQUENCE_1_CHANNEL = 0U,
+    ADC_SEQUENCE_2_CHANNELS = 1U,
+    ADC_SEQUENCE_3_CHANNELS = 2U,
+    ADC_SEQUENCE_4_CHANNELS = 3U,
+    ADC_SEQUENCE_5_CHANNELS = 4U,
+    ADC_SEQUENCE_6_CHANNELS = 5U,
+    ADC_SEQUENCE_7_CHANNELS = 6U,
+    ADC_SEQUENCE_8_CHANNELS = 7U,
 } adc_sequence_channel_amount;
 
 typedef enum {
@@ -376,6 +376,8 @@ static inline bool adc_conversion_ongoing() {
     return adc_conversion_ongoing_regular() ||
            adc_conversion_ongoing_injected();
 }
+
+static inline uint32_t adc_get_value() { return READ_REG(ADC1->DR); }
 
 hal_err adc_conversion_stop(adc_conversion_group group);
 

@@ -7,10 +7,12 @@
 
 // TYPES
 
+#define ADC_CHANNEL_NA -1 // Not available
+
 typedef struct {
     volatile GPIO_TypeDef *gpio;
     uint8_t num;
-    int8_t adc_chan; // -1 if not available
+    int8_t adc_chan;
 } gpio_pin_t;
 
 #define HIGH true
@@ -78,51 +80,84 @@ typedef enum {
 #define PA8 (gpio_pin_t){.gpio = GPIOA, .num = 8, .adc_chan = 15}
 #define PA9 (gpio_pin_t){.gpio = GPIOA, .num = 9, .adc_chan = 16}
 
-#define PA10 (gpio_pin_t){.gpio = GPIOA, .num = 10, .adc_chan = -1}
-#define PA11 (gpio_pin_t){.gpio = GPIOA, .num = 11, .adc_chan = -1}
-#define PA12 (gpio_pin_t){.gpio = GPIOA, .num = 12, .adc_chan = -1}
-#define PA13 (gpio_pin_t){.gpio = GPIOA, .num = 13, .adc_chan = -1}
-#define PA14 (gpio_pin_t){.gpio = GPIOA, .num = 14, .adc_chan = -1}
-#define PA15 (gpio_pin_t){.gpio = GPIOA, .num = 15, .adc_chan = -1}
+#define PA10                                                                   \
+    (gpio_pin_t) { .gpio = GPIOA, .num = 10, .adc_chan = ADC_CHANNEL_NA }
+#define PA11                                                                   \
+    (gpio_pin_t) { .gpio = GPIOA, .num = 11, .adc_chan = ADC_CHANNEL_NA }
+#define PA12                                                                   \
+    (gpio_pin_t) { .gpio = GPIOA, .num = 12, .adc_chan = ADC_CHANNEL_NA }
+#define PA13                                                                   \
+    (gpio_pin_t) { .gpio = GPIOA, .num = 13, .adc_chan = ADC_CHANNEL_NA }
+#define PA14                                                                   \
+    (gpio_pin_t) { .gpio = GPIOA, .num = 14, .adc_chan = ADC_CHANNEL_NA }
+#define PA15                                                                   \
+    (gpio_pin_t) { .gpio = GPIOA, .num = 15, .adc_chan = ADC_CHANNEL_NA }
 
-#define PB0 (gpio_pin_t){.gpio = GPIOB, .num = 0, .adc_chan = -1}
-#define PB1 (gpio_pin_t){.gpio = GPIOB, .num = 1, .adc_chan = -1}
-#define PB2 (gpio_pin_t){.gpio = GPIOB, .num = 2, .adc_chan = -1}
-#define PB3 (gpio_pin_t){.gpio = GPIOB, .num = 3, .adc_chan = -1}
-#define PB4 (gpio_pin_t){.gpio = GPIOB, .num = 4, .adc_chan = -1}
-#define PB5 (gpio_pin_t){.gpio = GPIOB, .num = 5, .adc_chan = -1}
-#define PB6 (gpio_pin_t){.gpio = GPIOB, .num = 6, .adc_chan = -1}
-#define PB7 (gpio_pin_t){.gpio = GPIOB, .num = 7, .adc_chan = -1}
-#define PB8 (gpio_pin_t){.gpio = GPIOB, .num = 8, .adc_chan = -1}
-#define PB9 (gpio_pin_t){.gpio = GPIOB, .num = 9, .adc_chan = -1}
+#define PB0                                                                    \
+    (gpio_pin_t) { .gpio = GPIOB, .num = 0, .adc_chan = ADC_CHANNEL_NA }
+#define PB1                                                                    \
+    (gpio_pin_t) { .gpio = GPIOB, .num = 1, .adc_chan = ADC_CHANNEL_NA }
+#define PB2                                                                    \
+    (gpio_pin_t) { .gpio = GPIOB, .num = 2, .adc_chan = ADC_CHANNEL_NA }
+#define PB3                                                                    \
+    (gpio_pin_t) { .gpio = GPIOB, .num = 3, .adc_chan = ADC_CHANNEL_NA }
+#define PB4                                                                    \
+    (gpio_pin_t) { .gpio = GPIOB, .num = 4, .adc_chan = ADC_CHANNEL_NA }
+#define PB5                                                                    \
+    (gpio_pin_t) { .gpio = GPIOB, .num = 5, .adc_chan = ADC_CHANNEL_NA }
+#define PB6                                                                    \
+    (gpio_pin_t) { .gpio = GPIOB, .num = 6, .adc_chan = ADC_CHANNEL_NA }
+#define PB7                                                                    \
+    (gpio_pin_t) { .gpio = GPIOB, .num = 7, .adc_chan = ADC_CHANNEL_NA }
+#define PB8                                                                    \
+    (gpio_pin_t) { .gpio = GPIOB, .num = 8, .adc_chan = ADC_CHANNEL_NA }
+#define PB9                                                                    \
+    (gpio_pin_t) { .gpio = GPIOB, .num = 9, .adc_chan = ADC_CHANNEL_NA }
 
-#define PB10 (gpio_pin_t){.gpio = GPIOB, .num = 10, .adc_chan = -1}
-#define PB11 (gpio_pin_t){.gpio = GPIOB, .num = 11, .adc_chan = -1}
-#define PB12 (gpio_pin_t){.gpio = GPIOB, .num = 12, .adc_chan = -1}
-#define PB13 (gpio_pin_t){.gpio = GPIOB, .num = 13, .adc_chan = -1}
-#define PB14 (gpio_pin_t){.gpio = GPIOB, .num = 14, .adc_chan = -1}
-#define PB15 (gpio_pin_t){.gpio = GPIOB, .num = 15, .adc_chan = -1}
+#define PB10                                                                   \
+    (gpio_pin_t) { .gpio = GPIOB, .num = 10, .adc_chan = ADC_CHANNEL_NA }
+#define PB11                                                                   \
+    (gpio_pin_t) { .gpio = GPIOB, .num = 11, .adc_chan = ADC_CHANNEL_NA }
+#define PB12                                                                   \
+    (gpio_pin_t) { .gpio = GPIOB, .num = 12, .adc_chan = ADC_CHANNEL_NA }
+#define PB13                                                                   \
+    (gpio_pin_t) { .gpio = GPIOB, .num = 13, .adc_chan = ADC_CHANNEL_NA }
+#define PB14                                                                   \
+    (gpio_pin_t) { .gpio = GPIOB, .num = 14, .adc_chan = ADC_CHANNEL_NA }
+#define PB15                                                                   \
+    (gpio_pin_t) { .gpio = GPIOB, .num = 15, .adc_chan = ADC_CHANNEL_NA }
 
 #define PC0 (gpio_pin_t){.gpio = GPIOC, .num = 0, .adc_chan = 0}
 #define PC1 (gpio_pin_t){.gpio = GPIOC, .num = 1, .adc_chan = 1}
 #define PC2 (gpio_pin_t){.gpio = GPIOC, .num = 2, .adc_chan = 2}
 #define PC3 (gpio_pin_t){.gpio = GPIOC, .num = 3, .adc_chan = 3}
 #define PC4 (gpio_pin_t){.gpio = GPIOC, .num = 4, .adc_chan = 4}
-#define PC5 (gpio_pin_t){.gpio = GPIOC, .num = 5, .adc_chan = -1}
-#define PC6 (gpio_pin_t){.gpio = GPIOC, .num = 6, .adc_chan = -1}
+#define PC5                                                                    \
+    (gpio_pin_t) { .gpio = GPIOC, .num = 5, .adc_chan = ADC_CHANNEL_NA }
+#define PC6                                                                    \
+    (gpio_pin_t) { .gpio = GPIOC, .num = 6, .adc_chan = ADC_CHANNEL_NA }
 
-#define PC10 (gpio_pin_t){.gpio = GPIOC, .num = 10, .adc_chan = -1}
-#define PC11 (gpio_pin_t){.gpio = GPIOC, .num = 11, .adc_chan = -1}
-#define PC12 (gpio_pin_t){.gpio = GPIOC, .num = 12, .adc_chan = -1}
-#define PC13 (gpio_pin_t){.gpio = GPIOC, .num = 13, .adc_chan = -1}
-#define PC14 (gpio_pin_t){.gpio = GPIOC, .num = 14, .adc_chan = -1}
-#define PC15 (gpio_pin_t){.gpio = GPIOC, .num = 15, .adc_chan = -1}
+#define PC10                                                                   \
+    (gpio_pin_t) { .gpio = GPIOC, .num = 10, .adc_chan = ADC_CHANNEL_NA }
+#define PC11                                                                   \
+    (gpio_pin_t) { .gpio = GPIOC, .num = 11, .adc_chan = ADC_CHANNEL_NA }
+#define PC12                                                                   \
+    (gpio_pin_t) { .gpio = GPIOC, .num = 12, .adc_chan = ADC_CHANNEL_NA }
+#define PC13                                                                   \
+    (gpio_pin_t) { .gpio = GPIOC, .num = 13, .adc_chan = ADC_CHANNEL_NA }
+#define PC14                                                                   \
+    (gpio_pin_t) { .gpio = GPIOC, .num = 14, .adc_chan = ADC_CHANNEL_NA }
+#define PC15                                                                   \
+    (gpio_pin_t) { .gpio = GPIOC, .num = 15, .adc_chan = ADC_CHANNEL_NA }
 
-#define PD0 (gpio_pin_t){.gpio = GPIOD, .num = 0, .adc_chan = -1}
+#define PD0                                                                    \
+    (gpio_pin_t) { .gpio = GPIOD, .num = 0, .adc_chan = ADC_CHANNEL_NA }
 
-#define PE4 (gpio_pin_t){.gpio = GPIOE, .num = 4, .adc_chan = -1}
+#define PE4                                                                    \
+    (gpio_pin_t) { .gpio = GPIOE, .num = 4, .adc_chan = ADC_CHANNEL_NA }
 
-#define PH3 (gpio_pin_t){.gpio = GPIOH, .num = 3, .adc_chan = -1}
+#define PH3                                                                    \
+    (gpio_pin_t) { .gpio = GPIOH, .num = 3, .adc_chan = ADC_CHANNEL_NA }
 
 // FUNCTIONS
 
@@ -140,23 +175,9 @@ void gpio_set_speed(gpio_pin_t pin, gpio_speed speed);
 
 void gpio_set_output_type(gpio_pin_t pin, gpio_output_type type);
 
-void gpio_adc_start();
-
-void gpio_adc_stop();
-
-// Requires `gpio_adc_end()`
-hal_err gpio_adc_calibrate(gpio_calib_input_mode mode,
-                           uint8_t *const calibration_factor);
-
-// Requires `gpio_adc_calibrate()`, `gpio_adc_start()`
-hal_err gpio_adc_apply_calibration(gpio_calib_input_mode mode,
-                                   uint8_t calibration_factor);
-
 void gpio_digital_write(gpio_pin_t pin, bool val);
 
 bool gpio_digital_read(gpio_pin_t pin);
-
-hal_err gpio_analog_read(gpio_pin_t pin, uint32_t *const data);
 
 hal_err gpio_enable_interrupt(gpio_pin_t pin);
 
