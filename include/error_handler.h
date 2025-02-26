@@ -9,6 +9,10 @@
 
 #define ERR_INV_SYSCLOCK -105
 
+#define ERR_KB_COMMON_NO_ADC_CHAN -1001
+
+#define ERR_ADC_RB_TIMEOUT -1002
+
 #define ERR_H(ERR_CODE)                                                        \
     do {                                                                       \
         error_handler(ERR_CODE);                                               \

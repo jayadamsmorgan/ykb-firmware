@@ -1,3 +1,4 @@
+#include "adc.h"
 #include "boot0_handler.h"
 #include "clock.h"
 #include "crs.h"
@@ -10,28 +11,25 @@
 #include "version.h"
 
 int main(void) {
+
+    // Base
     system_init();
-
     setup_error_handler();
-
     ERR_H(setup_clock());
-
     ERR_H(setup_crs());
-
     ERR_H(hal_init());
 
+    // Misc
     ERR_H(setup_boot0_handler());
+    ERR_H(setup_test_button_handler());
+    ERR_H(setup_tempsensor());
 
-    gpio_turn_on_port(PB1.gpio);
-    gpio_set_mode(PB1, GPIO_MODE_OUTPUT);
-
+    // Main
+    ERR_H(kb_init());
+    ERR_H(setup_adc());
     ERR_H(setup_usb());
 
-    ERR_H(setup_test_button_handler());
-
-    (void)DACTYL_CC_HE_FW_VERSION;
-
-    while (true) {
+    while (true) { // Main loop
         kb_handle(true);
     }
 }

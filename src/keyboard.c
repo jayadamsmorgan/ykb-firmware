@@ -1,5 +1,9 @@
 #include "keyboard.h"
 
+#include "adc.h"
+#include "error_handler.h"
+#include "hal/adc.h"
+#include "hal/gpio.h"
 #include "hal/hal_err.h"
 #include "mappings.h"
 #include "mux.h"
@@ -116,17 +120,6 @@ hal_err kb_init() {
 
     hal_err err;
 
-    // Init ADC:
-    // err = gpio_adc_calibrate(GPIO_CALIB_INPUT_SINGLE_ENDED, NULL);
-    // if (err) {
-    //     return err;
-    // }
-    // gpio_adc_start();
-    // err = gpio_adc_set_resolution(GPIO_ADC_RES_10BIT);
-    // if (err) {
-    //     return err;
-    // }
-
     // Init MUXes:
     for (uint8_t i = 0; i < 3; i++) {
         mux_t mux = muxes[i];
@@ -136,8 +129,25 @@ hal_err kb_init() {
             return err;
         }
 
-        // err = gpio_adc_set_sampling_time(mux.common,
-        // GPIO_ADC_SMP_2_5_CYCLES);
+        gpio_turn_on_port(mux.common.gpio);
+        gpio_set_mode(mux.common, GPIO_MODE_ANALOG);
+
+        adc_channel_config_t channel_config;
+
+        if (mux.common.adc_chan == ADC_CHANNEL_NA) {
+            // The selected common pin does not have an ADC channel
+            return ERR_KB_COMMON_NO_ADC_CHAN;
+        }
+
+        channel_config.channel = mux.common.adc_chan;
+        channel_config.mode = ADC_CHANNEL_SINGLE_ENDED;
+        channel_config.rank = ADC_CHANNEL_RANK_1;
+        channel_config.sampling_time = ADC_SMP_92_5_CYCLES;
+        channel_config.offset_type = ADC_CHANNEL_OFFSET_NONE;
+        channel_config.offset = 0;
+
+        adc_config_channel(&channel_config);
+
         if (err) {
             return err;
         }
@@ -221,18 +231,23 @@ error_t kb_set_min_threshold(uint32_t threshold, bool blocking) {
 static inline hal_err kb_key_pressed_by_threshold(mux_t *mux, uint8_t channel,
                                                   uint16_t *const value) {
     mux_select_channel(mux, channel);
-    uint32_t mux_value = 0;
-    hal_err err = OK; // = gpio_analog_read(mux->common, &mux_value);
+
+    uint32_t tmp_value;
+    hal_err err;
+
+    err = adc_read_blocking(&tmp_value);
+
     if (err) {
 #ifdef DEBUG
         // TODO: error occured, debug it to serial
 #endif // DEBUG
         return err;
     }
+
     if (value) {
-        *value = mux_value;
+        *value = tmp_value;
     }
-    return mux_value >= kb_state.key_threshold;
+    return tmp_value >= kb_state.key_threshold;
 }
 
 static uint8_t hid_buff[8];
