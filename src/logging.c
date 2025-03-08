@@ -1,11 +1,11 @@
-#include "uart.h"
+#include "hal/gpio.h"
+#include "utils/utils.h"
+#if defined(DEBUG) && defined(HAL_UART_ENABLED)
 
-#define HAL_UART_ENABLED
-
-#include "hal/hal_err.h"
 #include "hal/uart.h"
+#include "logging.h"
 
-hal_err setup_uart() {
+hal_err setup_logging() {
 
     uart_init_t init;
     init.baudrate = 115200;
@@ -45,3 +45,13 @@ hal_err setup_uart() {
 
     return OK;
 }
+
+int _write(int file, char *ptr, int len) {
+    UNUSED(file);
+    gpio_digital_write(PB0, HIGH);
+    uart_transmit((uint8_t *)ptr, len, 0xFFFF);
+    gpio_digital_write(PB0, LOW);
+    return len;
+}
+
+#endif // DEBUG && HAL_UART_ENABLED
