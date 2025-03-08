@@ -1,7 +1,26 @@
 #ifndef HAL_CLOCK_H
 #define HAL_CLOCK_H
 
+#include "hal/bits.h"
+#include "stm32wbxx.h"
 #include <stdint.h>
+
+#ifndef HSI_VALUE
+#define HSI_VALUE 16000000U
+#endif // HSI_VALUE
+
+#ifndef MSI_VALUE
+#define MSI_VALUE 4000000U
+#endif // MSI_VALUE
+
+#ifndef HSE_VALUE
+#define HSE_VALUE 32000000U
+#endif // HSE_VALUE
+
+#ifndef LSE_VALUE
+#define LSE_VALUE 32768U
+#endif // LSE_VALUE
+
 typedef enum {
     CLOCK_SOURCE_MSI = 0U,
     CLOCK_SOURCE_HSI16 = 1U,
@@ -174,6 +193,17 @@ typedef enum {
     CLOCK_PLLR_8 = 7U,
 } clock_pllr;
 
+typedef struct {
+
+    clock_pll_source source;
+
+    clock_pllm pllm;
+    clock_plln plln;
+    clock_pllq pllq;
+    clock_pllr pllr;
+
+} clock_pll_config_t;
+
 typedef enum {
     CLOCK_HCLK2_PRESC_DIV_3 = 1U,
     CLOCK_HCLK2_PRESC_DIV_5 = 2U,
@@ -198,9 +228,20 @@ typedef enum {
 } clock_usb_rng_source;
 
 // Global
+uint32_t clock_get_system_clock();
+
 void clock_hclk2_set_prescaler(clock_hclk2_prescaler presc);
 
-void clock_select_source(clock_source source);
+static inline void clock_select_source(clock_source source) {
+    MODIFY_BITS(RCC->CFGR, RCC_CFGR_SW_Pos, source, BITMASK_2BIT);
+    while (READ_BITS(RCC->CFGR, RCC_CFGR_SWS_Pos, BITMASK_2BIT) != source) {
+    }
+}
+
+uint32_t clock_get_hclk_frequency();
+
+uint32_t clock_get_pclk1_frequency();
+uint32_t clock_get_pclk2_frequency();
 
 void clock_usb_rng_select_source(clock_usb_rng_source source);
 
@@ -211,8 +252,9 @@ void clock_usb_disable();
 void clock_hse_enable();
 
 // PLL
-void clock_pll_config(clock_pllm pllm, clock_plln plln, clock_pllq pllq,
-                      clock_pllr pllr, clock_pll_source source);
+
+void clock_pll_config(const clock_pll_config_t *config);
+void clock_pll_update_config(clock_pll_config_t *config);
 void clock_pll_enable();
 
 #endif // HAL_CLOCK_H
