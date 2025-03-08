@@ -2,11 +2,13 @@
 #define HAL_H
 
 #include "hal/hal_err.h"
-#include "system_stm32wbxx.h"
+#include "stm32wbxx.h"
 
 #ifndef __weak
 #define __weak __attribute__((weak))
 #endif // __weak
+
+typedef FlagStatus flag_status;
 
 static inline void system_init() { SystemInit(); }
 
