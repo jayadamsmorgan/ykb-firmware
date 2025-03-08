@@ -28,8 +28,10 @@ void error_handler(hal_err error_code) {
         }
     }
 
+#ifdef DEBUG
     int long_blinks = -error_code / 100;
     int short_blinks = -error_code % 100;
+#endif // DEBUG
 
     while (true) {
 #if DEBUG
