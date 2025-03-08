@@ -75,9 +75,9 @@ COMMON_FLAGS = -Wall -Wextra -Werror \
                -mfloat-abi=hard -mfpu=fpv4-sp-d16 -mcpu=$(MCU) -D$(BOARD) \
                $(INCLUDES)
 
-LDFLAGS = -T $(LD_SCRIPT) --specs=nosys.specs -Wl,--gc-sections
+LDFLAGS = -T $(LD_SCRIPT) -lc -lm -lnosys --specs=nano.specs -Wl,--gc-sections
 
-DEBUG_CFLAGS   = -g -gdwarf-2 -Og -DDEBUG -DGIT_HASH=\"$(GIT_HASH)\"
+DEBUG_CFLAGS   = -g -gdwarf-2 -Og -DHAL_UART_ENABLED -DDEBUG -DGIT_HASH=\"$(GIT_HASH)\"
 RELEASE_CFLAGS = -O2
 
 LEFT_FLAG  = -DLEFT
