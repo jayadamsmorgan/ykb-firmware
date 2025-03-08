@@ -134,7 +134,7 @@ hal_err kb_init() {
 
         adc_channel_config_t channel_config;
 
-        if (mux.common.adc_chan == ADC_CHANNEL_NA) {
+        if (mux.common.adc_chan == ADC_CHANNEL_NONE) {
             // The selected common pin does not have an ADC channel
             return ERR_KB_COMMON_NO_ADC_CHAN;
         }

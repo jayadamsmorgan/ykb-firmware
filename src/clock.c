@@ -17,8 +17,13 @@ inline hal_err setup_clock() {
     // 24*8MHz = 192MHz -> PLLN = 24
     // f_Q = 48MHz -> PLLQ = 4
     // f_R = 64MHz -> PLLR = 3
-    clock_pll_config(CLOCK_PLLM_4, CLOCK_PLLN_24, CLOCK_PLLQ_4, CLOCK_PLLR_3,
-                     CLOCK_PLL_SOURCE_HSE);
+    clock_pll_config_t pll_config;
+    pll_config.source = CLOCK_PLL_SOURCE_HSE;
+    pll_config.pllr = CLOCK_PLLR_3;
+    pll_config.pllm = CLOCK_PLLM_4;
+    pll_config.plln = CLOCK_PLLN_24;
+    pll_config.pllq = CLOCK_PLLQ_4;
+    clock_pll_config(&pll_config);
 
     // Enable the PLL
     clock_pll_enable();
