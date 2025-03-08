@@ -2,6 +2,7 @@
 
 #include "hal/bits.h"
 #include "hal/cortex.h"
+#include "hal/gpio.h"
 #include "hal/hal_err.h"
 #include "hal/systick.h"
 #include "stm32wb55xx.h"
@@ -13,6 +14,10 @@
 static volatile adc_handle_t hal_adc_handle;
 
 hal_err adc_init(const adc_init_t *init) {
+
+    if (!init) {
+        return ERR_ADC_INIT_ARGNULL;
+    }
 
     volatile adc_handle_t *handle = &hal_adc_handle;
 

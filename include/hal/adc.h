@@ -1,11 +1,8 @@
 #ifndef HAL_ADC_H
 #define HAL_ADC_H
 
-#include "hal/gpio.h"
 #include "hal/hal_err.h"
-#include "stm32wb55xx.h"
 #include "stm32wbxx.h"
-#include <stdint.h>
 
 #define HAL_ADC_STATE_RESET (0x00000000UL)
 #define HAL_ADC_STATE_READY (0x00000001UL)
@@ -302,6 +299,7 @@ typedef enum {
     ADC_CHANNEL_VREFINT = 19U,
     ADC_CHANNEL_TEMPSENSOR = 20U,
     ADC_CHANNEL_VBAT = 21U,
+    ADC_CHANNEL_NONE = 22U,
 } adc_channel;
 
 typedef struct {
