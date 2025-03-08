@@ -7,7 +7,7 @@
 #include "stm32wbxx.h"
 #include <stdint.h>
 
-void gpio_turn_on_port(volatile GPIO_TypeDef *port) {
+void gpio_turn_on_port(gpio_t *port) {
     if (port == GPIOA) {
         SET_BIT(RCC->AHB2ENR, RCC_AHB2ENR_GPIOAEN);
     } else if (port == GPIOB) {
@@ -23,7 +23,7 @@ void gpio_turn_on_port(volatile GPIO_TypeDef *port) {
     }
 }
 
-void gpio_turn_off_port(volatile GPIO_TypeDef *port) {
+void gpio_turn_off_port(gpio_t *port) {
     if (port == GPIOA) {
         CLEAR_BIT(RCC->AHB2ENR, RCC_AHB2ENR_GPIOAEN);
     } else if (port == GPIOB) {
