@@ -21,18 +21,18 @@
 #define LOG_TRACE_EXPECTED(STR, VALUE, EXPECTED)                               \
     do {                                                                       \
         if (VALUE != EXPECTED) {                                               \
-            LOG_ERROR(STR " %d. Expected: %d.", VALUE, EXPECTED);              \
+            LOG_ERROR(STR " %d. Expected: %d", VALUE, EXPECTED);               \
         } else {                                                               \
-            LOG_TRACE(STR " %d.", VALUE);                                      \
+            LOG_TRACE(STR " %d", VALUE);                                       \
         }                                                                      \
     } while (0)
 
 #define LOG_DEBUG_EXPECTED(STR, VALUE, EXPECTED)                               \
     do {                                                                       \
         if (VALUE != EXPECTED) {                                               \
-            LOG_ERROR(STR " %d. Expected: %d.", VALUE, EXPECTED);              \
+            LOG_ERROR(STR " %d. Expected: %d", VALUE, EXPECTED);               \
         } else {                                                               \
-            LOG_DEBUG(STR " %d.", VALUE);                                      \
+            LOG_DEBUG(STR " %d", VALUE);                                       \
         }                                                                      \
     } while (0)
 

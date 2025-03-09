@@ -11,7 +11,7 @@
 // Use HSE and the PLL to get a 64MHz SYSCLK
 inline hal_err setup_clock() {
 
-    LOG_DEBUG("CLOCK: Setting up");
+    LOG_DEBUG("CLOCK: Setting up...");
 
     // Enable the 32MHz external oscillator
     clock_hse_enable();

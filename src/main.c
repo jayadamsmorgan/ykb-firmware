@@ -14,12 +14,15 @@
 int main(void) {
 
     // Base
+    LOG_INFO("Start booting...");
     system_init();
+    LOG_TRACE("CORE: System init OK.");
     setup_error_handler();
     ERR_H(setup_clock());
-    ERR_H(setup_logging());
     ERR_H(setup_crs());
     ERR_H(hal_init());
+    LOG_TRACE("CORE: HAL init OK.");
+    ERR_H(setup_logging());
 
     // Misc
     ERR_H(setup_boot0_handler());

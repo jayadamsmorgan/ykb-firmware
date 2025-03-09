@@ -5,13 +5,16 @@
 #include "hal/adc.h"
 #include "hal/gpio.h"
 #include "hal/hal_err.h"
+#include "logging.h"
 #include "mappings.h"
 #include "mux.h"
 #include "pinout.h"
 #include "settings.h"
 #include "usb/usbd_hid.h"
 #include <stdint.h>
+#include <stdio.h>
 #include <string.h>
+#include <strings.h>
 
 //
 // KB
@@ -110,13 +113,17 @@ static mux_t muxes[3] = {
 };
 
 static inline void kb_load_mappings() {
+    LOG_INFO("KB: Loading mappings...");
     // TODO
     // kb_state.mappings = ... (load saved from flash)
     // if failure, use default:
     kb_state.mappings = mappings;
+    LOG_INFO("KB: Mappings loaded.");
 }
 
 hal_err kb_init() {
+
+    LOG_INFO("KB: Initializing...");
 
     hal_err err;
 
@@ -124,18 +131,28 @@ hal_err kb_init() {
     for (uint8_t i = 0; i < 3; i++) {
         mux_t mux = muxes[i];
 
+        LOG_TRACE("KB: Initializing MUX%d...", i + 1);
         err = mux_init(&mux);
         if (err) {
+            LOG_CRITICAL("KB: Error initializing MUX%d: %d", i + 1, err);
             return err;
         }
+        LOG_TRACE("KB: MUX%d init OK.", i + 1);
 
         gpio_turn_on_port(mux.common.gpio);
         gpio_set_mode(mux.common, GPIO_MODE_ANALOG);
+
+        LOG_TRACE("KB: MUX%d initialized.", i + 1);
+
+        LOG_TRACE("KB: Setting up ADC for MUX%d...", i + 1);
 
         adc_channel_config_t channel_config;
 
         if (mux.common.adc_chan == ADC_CHANNEL_NONE) {
             // The selected common pin does not have an ADC channel
+            LOG_CRITICAL(
+                "KB: Common pin for MUX%d does not have an ADC channel.",
+                i + 1);
             return ERR_KB_COMMON_NO_ADC_CHAN;
         }
 
@@ -146,15 +163,22 @@ hal_err kb_init() {
         channel_config.offset_type = ADC_CHANNEL_OFFSET_NONE;
         channel_config.offset = 0;
 
+        LOG_TRACE("Configuring ADC channel for MUX%d...", i + 1);
         adc_config_channel(&channel_config);
 
         if (err) {
+            LOG_ERROR("KB: Error initializing ADC for MUX%d: %d", i + 1, err);
             return err;
         }
+        LOG_TRACE("KB: ADC for MUX%d initialized.", i + 1);
+
+        LOG_INFO("KB: MUX%d setup complete.", i + 1);
     }
 
     // Load saved
     kb_load_mappings();
+
+    LOG_INFO("KB: Setup complete.");
 
     return OK;
 }
@@ -191,6 +215,8 @@ error_t kb_set_mode(kb_mode new_mode, bool blocking) {
     kb_state.mode = new_mode;
     kb_state.lock = false;
 
+    LOG_DEBUG("KB: New mode set: %d.", new_mode);
+
     return 0;
 }
 
@@ -225,6 +251,8 @@ error_t kb_set_min_threshold(uint32_t threshold, bool blocking) {
     kb_state.key_threshold = threshold;
     kb_state.lock = false;
 
+    LOG_DEBUG("KB: New threshold set: %d.", threshold);
+
     return 0;
 }
 
@@ -238,15 +266,14 @@ static inline hal_err kb_key_pressed_by_threshold(mux_t *mux, uint8_t channel,
     err = adc_read_blocking(&tmp_value);
 
     if (err) {
-#ifdef DEBUG
-        // TODO: error occured, debug it to serial
-#endif // DEBUG
+        LOG_ERROR("KB: Error reading ADC.");
         return err;
     }
 
     if (value) {
         *value = tmp_value;
     }
+
     return tmp_value >= kb_state.key_threshold;
 }
 
@@ -267,14 +294,9 @@ void kb_poll_normal() {
 
             hal_err err = kb_key_pressed_by_threshold(mux, i, NULL);
 
-#if DEBUG
-            if (err < 0) {
-                // Error occured
-                // TODO
-            }
-#endif // DEBUG
             if (err > 0) {
                 // Key press occured
+                LOG_DEBUG("KB: Key %c pressed.", kb_state.mappings[index + j]);
                 hid_buff[pressed_amount++] = kb_state.mappings[index + j];
             }
         }

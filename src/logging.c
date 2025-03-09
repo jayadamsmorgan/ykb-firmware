@@ -1,3 +1,4 @@
+#include <stdint.h>
 #if defined(DEBUG) && defined(HAL_UART_ENABLED)
 
 #include "logging.h"
@@ -8,8 +9,19 @@
 #include <stdarg.h>
 #include <string.h>
 
+#define LOG_STR_MAX_LEN 64
+#define LOG_STR_QUEUE_LEN 50
+
+typedef struct __string_to_write {
+    char data[LOG_STR_MAX_LEN];
+    int len;
+} string_to_write;
+
 static log_level __level = LOG_LEVEL;
 static bool logging_set_up = false;
+
+static string_to_write log_str_queue[LOG_STR_QUEUE_LEN];
+static uint8_t log_str_queue_index = 0;
 
 void _log(log_level level, const char *format, ...) {
 
@@ -81,34 +93,27 @@ hal_err setup_logging() {
         return err;
     }
 
+    if (log_str_queue_index > 0) {
+
+        for (uint8_t i = 0; i < log_str_queue_index; i++) {
+            gpio_digital_write(PB0, HIGH);
+            string_to_write str = log_str_queue[i];
+            uart_transmit((uint8_t *)str.data, str.len, 0xFFFF);
+            gpio_digital_write(PB0, LOW);
+        }
+
+        log_str_queue_index = 0;
+    }
+
     logging_set_up = true;
 
     return OK;
 }
 
-#define LOG_STR_MAX_LEN 64
-#define LOG_STR_QUEUE_LEN 20
-
-typedef struct __string_to_write {
-    char data[LOG_STR_MAX_LEN];
-    int len;
-} string_to_write;
-
-static string_to_write log_str_queue[LOG_STR_QUEUE_LEN];
-static uint8_t log_str_queue_index = 0;
-
 int _write(int file, char *ptr, int len) {
     UNUSED(file);
 
     if (logging_set_up) {
-
-        while (log_str_queue_index > 0) {
-            log_str_queue_index--;
-            gpio_digital_write(PB0, HIGH);
-            string_to_write str = log_str_queue[log_str_queue_index];
-            uart_transmit((uint8_t *)str.data, str.len, 0xFFFF);
-            gpio_digital_write(PB0, LOW);
-        }
 
         gpio_digital_write(PB0, HIGH);
         uart_transmit((uint8_t *)ptr, len, 0xFFFF);

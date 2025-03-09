@@ -47,15 +47,25 @@ typedef uint16_t crs_counter_reload_t;
 
 typedef uint8_t crs_smooth_trim_t;
 
+typedef struct {
+    crs_sync_polarity polarity;
+    crs_sync_source source;
+    crs_sync_divider divider;
+    crs_frequency_limit_t limit;
+    crs_counter_reload_t reload;
+} crs_config_t;
+
 void crs_enable();
+bool crs_enabled();
 
-void crs_enable_auto_trimming();
+void crs_auto_trimming_enable();
+bool crs_auto_trimming_enabled();
 
-void crs_enable_frequency_error_counter();
+void crs_frequency_error_counter_enable();
+bool crs_frequency_error_counter_enabled();
 
-void crs_config(crs_sync_polarity polarity, crs_sync_source source,
-                crs_sync_divider divider, crs_frequency_limit_t limit,
-                crs_counter_reload_t reload);
+void crs_config(const crs_config_t *config);
+void crs_config_update(crs_config_t *config);
 
 // Trim should be a 6-bit value
 hal_err crs_set_smooth_trimming(crs_smooth_trim_t trim);
