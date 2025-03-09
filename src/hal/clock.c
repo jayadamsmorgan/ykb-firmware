@@ -104,8 +104,16 @@ void clock_hclk2_set_prescaler(clock_hclk2_prescaler presc) {
     MODIFY_BITS(RCC->EXTCFGR, RCC_EXTCFGR_C2HPRE_Pos, presc, BITMASK_4BIT);
 }
 
+clock_hclk2_prescaler clock_hclk2_get_prescaler() {
+    return READ_BITS(RCC->EXTCFGR, RCC_EXTCFGR_C2HPRE_Pos, BITMASK_4BIT);
+}
+
 void clock_usb_rng_select_source(clock_usb_rng_source source) {
     MODIFY_BITS(RCC->CCIPR, RCC_CCIPR_CLK48SEL_Pos, source, BITMASK_2BIT);
+}
+
+clock_usb_rng_source clock_usb_rng_get_source() {
+    return READ_BITS(RCC->CCIPR, RCC_CCIPR_CLK48SEL_Pos, BITMASK_2BIT);
 }
 
 void clock_usb_enable() { SET_BIT(RCC->APB1ENR1, RCC_APB1ENR1_USBEN); }

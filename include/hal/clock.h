@@ -231,6 +231,7 @@ typedef enum {
 uint32_t clock_get_system_clock();
 
 void clock_hclk2_set_prescaler(clock_hclk2_prescaler presc);
+clock_hclk2_prescaler clock_hclk2_get_prescaler();
 
 static inline void clock_select_source(clock_source source) {
     MODIFY_BITS(RCC->CFGR, RCC_CFGR_SW_Pos, source, BITMASK_2BIT);
@@ -244,6 +245,7 @@ uint32_t clock_get_pclk1_frequency();
 uint32_t clock_get_pclk2_frequency();
 
 void clock_usb_rng_select_source(clock_usb_rng_source source);
+clock_usb_rng_source clock_usb_rng_get_source();
 
 void clock_usb_enable();
 void clock_usb_disable();

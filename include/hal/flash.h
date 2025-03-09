@@ -11,5 +11,6 @@ typedef enum {
 void flash_enable_prefetch();
 
 void flash_select_latency(flash_latency latency);
+flash_latency flash_get_latency();
 
 #endif // HAL_FLASH_H
