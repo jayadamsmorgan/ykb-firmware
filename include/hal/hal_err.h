@@ -64,4 +64,7 @@ typedef error_t hal_err;
 #define ERR_UART_RX_BUSY -916
 #define ERR_UART_RX_BADARGS -917
 
+#define ERR_I2C_INIT_ARGNULL -1000
+#define ERR_I2C_INIT_INSTANCENULL -1001
+
 #endif // HAL_ERR_H
