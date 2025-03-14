@@ -1,6 +1,7 @@
 #ifndef HAL_ADC_H
 #define HAL_ADC_H
 
+#include "hal/dma.h"
 #include "hal/hal_err.h"
 #include "stm32wbxx.h"
 
@@ -255,9 +256,21 @@ typedef struct {
 
     void (*sampling_complete)();
 
-    void (*regular_conversion_complete)(adc_conversion_trigger trigger);
+    void (*conversion_complete)(adc_conversion_trigger trigger);
+
+    void (*conversion_half_complete)();
 
     void (*injected_conversion_complete)(adc_conversion_trigger trigger);
+
+    void (*injected_queue_overflow)();
+
+    void (*error_callback)(uint32_t error);
+
+    void (*awd1_callback)();
+
+    void (*awd2_callback)();
+
+    void (*awd3_callback)();
 
 } adc_callbacks_t;
 
@@ -271,6 +284,8 @@ typedef struct {
     __IO uint32_t error;
 
     adc_callbacks_t callbacks;
+
+    dma_handle_t *dma_handle;
 
     bool lock;
 
@@ -394,5 +409,9 @@ hal_err adc_start_calibration(adc_channel_mode mode);
 
 hal_err adc_start_it();
 hal_err adc_stop_it();
+
+hal_err adc_start_dma(uint32_t *dma_buf, uint32_t dma_buf_len);
+
+void adc_link_dma(dma_handle_t *handle);
 
 #endif // HAL_ADC_H

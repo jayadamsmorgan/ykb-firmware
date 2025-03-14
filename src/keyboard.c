@@ -260,18 +260,18 @@ static inline hal_err kb_key_pressed_by_threshold(mux_t *mux, uint8_t channel,
                                                   uint16_t *const value) {
     mux_select_channel(mux, channel);
 
-    uint32_t tmp_value;
-    hal_err err;
+    uint32_t tmp_value = 0;
+    // hal_err err;
 
-    err = adc_read_blocking(&tmp_value);
-
-    if (err) {
-        LOG_ERROR("KB: Error reading ADC.");
-        return err;
-    }
+    // err = adc_read_blocking(&tmp_value, &tmp_value);
+    //
+    // if (err) {
+    //     LOG_ERROR("KB: Error reading ADC.");
+    //     return err;
+    // }
 
     if (value) {
-        *value = tmp_value;
+        // *value = tmp_value;
     }
 
     return tmp_value >= kb_state.key_threshold;

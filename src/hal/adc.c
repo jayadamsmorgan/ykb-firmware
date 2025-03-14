@@ -2,6 +2,7 @@
 
 #include "hal/bits.h"
 #include "hal/cortex.h"
+#include "hal/dma.h"
 #include "hal/gpio.h"
 #include "hal/hal_err.h"
 #include "hal/systick.h"
@@ -609,6 +610,124 @@ hal_err adc_stop_it() {
     return OK;
 }
 
+void adc_dma_conversion_complete(dma_handle_t *dma_handle) {
+
+    volatile adc_handle_t *adc_handle = &hal_adc_handle;
+
+    if (adc_handle->state & HAL_ADC_STATE_ERROR_INTERNAL) {
+        adc_handle->callbacks.error_callback(adc_handle->error);
+        return;
+    }
+    if (adc_handle->state & HAL_ADC_STATE_ERROR_DMA) {
+        dma_handle->xfer_error_callback(dma_handle);
+        return;
+    }
+
+    SET_BIT(adc_handle->state, HAL_ADC_STATE_REG_EOC);
+
+    if (!(ADC1->ISR & ADC_ISR_EOS)) {
+        if (!READ_BIT(ADC1->CFGR, ADC_CFGR_DMACFG)) {
+            CLEAR_BIT(adc_handle->state, HAL_ADC_STATE_REG_BUSY);
+            if ((adc_handle->state & HAL_ADC_STATE_INJ_BUSY) == 0UL) {
+                SET_BIT(adc_handle->state, HAL_ADC_STATE_READY);
+            }
+        }
+        adc_handle->callbacks.conversion_complete(ADC_CONVERSION_TRIGGER_EOS);
+        return;
+    }
+
+    if (READ_BIT(ADC1->CFGR, ADC_CFGR_EXTEN)) {
+        adc_handle->callbacks.conversion_complete(ADC_CONVERSION_TRIGGER_EOS);
+        return;
+    }
+
+    if (READ_BIT(ADC1->CFGR, ADC_CFGR_CONT) == 0UL) {
+        CLEAR_BIT(adc_handle->state, HAL_ADC_STATE_REG_BUSY);
+        if ((adc_handle->state & HAL_ADC_STATE_INJ_BUSY) == 0UL) {
+            SET_BIT(adc_handle->state, HAL_ADC_STATE_READY);
+        }
+    }
+    adc_handle->callbacks.conversion_complete(ADC_CONVERSION_TRIGGER_EOS);
+}
+
+void adc_dma_conversion_half_complete(dma_handle_t *dma_handle) {
+    UNUSED(dma_handle);
+
+    hal_adc_handle.callbacks.conversion_half_complete();
+}
+
+void adc_dma_error(dma_handle_t *dma_handle) {
+
+    UNUSED(dma_handle);
+
+    volatile adc_handle_t *adc_handle = &hal_adc_handle;
+
+    SET_BIT(adc_handle->state, HAL_ADC_STATE_ERROR_DMA);
+    SET_BIT(adc_handle->error, HAL_ADC_ERROR_DMA);
+
+    adc_handle->callbacks.error_callback(adc_handle->error);
+}
+
+hal_err adc_start_dma(uint32_t *dma_buf, uint32_t dma_buf_len) {
+
+    volatile adc_handle_t *handle = &hal_adc_handle;
+
+    if (adc_conversion_ongoing_regular() || handle->lock) {
+        return ERR_ADC_STARTDMA_BUSY;
+    }
+
+    if (!dma_buf || dma_buf_len == 0) {
+        return ERR_ADC_STARTDMA_BADARGS;
+    }
+
+    handle->lock = true;
+
+    hal_err err;
+
+    err = adc_enable();
+    if (err) {
+        handle->lock = false;
+        return err;
+    }
+
+    MODIFY_REG(handle->state,
+               HAL_ADC_STATE_READY | HAL_ADC_STATE_REG_EOC |
+                   HAL_ADC_STATE_REG_OVR | HAL_ADC_STATE_REG_EOSMP,
+               HAL_ADC_STATE_REG_BUSY);
+
+    if (handle->state & HAL_ADC_STATE_INJ_BUSY) {
+        CLEAR_BIT(handle->error, (HAL_ADC_ERROR_OVR | HAL_ADC_ERROR_DMA));
+    } else {
+        handle->error = HAL_ADC_ERROR_NONE;
+    }
+
+    handle->dma_handle->xfer_complete_callback = adc_dma_conversion_complete;
+    handle->dma_handle->xfer_half_complete_callback =
+        adc_dma_conversion_half_complete;
+    handle->dma_handle->xfer_error_callback = adc_dma_error;
+
+    WRITE_REG(ADC1->ISR, (ADC_ISR_EOC | ADC_ISR_EOS | ADC_ISR_OVR));
+
+    handle->lock = false;
+
+    SET_BIT(ADC1->IER, ADC_IER_OVRIE);
+
+    SET_BIT(ADC1->CFGR, ADC_CFGR_DMAEN);
+
+    err = dma_start_it(handle->dma_handle, (uint32_t)&ADC1->DR,
+                       (uint32_t)dma_buf, dma_buf_len);
+    if (err) {
+        return err;
+    }
+
+    MODIFY_REG(ADC1->CR,
+               (ADC_CR_ADCAL | ADC_CR_JADSTP | ADC_CR_ADSTP | ADC_CR_JADSTART |
+                ADC_CR_ADSTART | ADC_CR_ADDIS | ADC_CR_ADEN),
+               ADC_CR_ADSTART);
+
+    return OK;
+}
+
 void adc_set_callbacks(adc_callbacks_t callbacks) {
     hal_adc_handle.callbacks = callbacks;
 }
@@ -655,8 +774,8 @@ __weak void ADC1_IRQHandler(void) {
         if (READ_BIT(ADC1->ISR, ADC_ISR_EOS)) {
             trigger = ADC_CONVERSION_TRIGGER_EOS;
         }
-        if (handle->callbacks.regular_conversion_complete) {
-            handle->callbacks.regular_conversion_complete(trigger);
+        if (handle->callbacks.conversion_complete) {
+            handle->callbacks.conversion_complete(trigger);
         }
 
         SET_BIT(ADC1->ISR, ADC_ISR_EOC | ADC_ISR_EOS);
@@ -709,7 +828,63 @@ __weak void ADC1_IRQHandler(void) {
         SET_BIT(ADC1->ISR, ADC_ISR_JEOC | ADC_ISR_JEOS);
     }
 
-    // TODO: Check AWD flags, overrun flag, JQOVF flag
+    if ((ADC1->IER & ADC_IER_AWD1IE) && (ADC1->ISR & ADC_ISR_AWD1)) {
+        SET_BIT(handle->state, HAL_ADC_STATE_AWD1);
+        if (handle->callbacks.awd1_callback) {
+            handle->callbacks.awd1_callback();
+        }
+        SET_BIT(ADC1->ISR, ADC_ISR_AWD1);
+    }
+
+    if ((ADC1->IER & ADC_IER_AWD2IE) && (ADC1->ISR & ADC_ISR_AWD2)) {
+        SET_BIT(handle->state, HAL_ADC_STATE_AWD2);
+        if (handle->callbacks.awd2_callback) {
+            handle->callbacks.awd2_callback();
+        }
+        SET_BIT(ADC1->ISR, ADC_ISR_AWD2);
+    }
+
+    if ((ADC1->IER & ADC_IER_AWD3IE) && (ADC1->ISR & ADC_ISR_AWD3)) {
+        SET_BIT(handle->state, HAL_ADC_STATE_AWD3);
+        if (handle->callbacks.awd3_callback) {
+            handle->callbacks.awd3_callback();
+        }
+        SET_BIT(ADC1->ISR, ADC_ISR_AWD3);
+    }
+
+    if ((ADC1->IER & ADC_IER_OVRIE) && (ADC1->ISR & ADC_ISR_OVR)) {
+
+        bool ovr_err = false;
+        if (handle->init.overrun_mode == ADC_OVERRUN_DATA_PRESERVED) {
+            ovr_err = true;
+        } else if (READ_BIT(ADC1->CFGR, ADC_CFGR_DMAEN | ADC_CFGR_DMACFG)) {
+            ovr_err = true;
+        }
+
+        if (ovr_err) {
+            SET_BIT(handle->state, HAL_ADC_STATE_REG_OVR);
+            SET_BIT(handle->error, HAL_ADC_ERROR_OVR);
+
+            handle->callbacks.error_callback(handle->error);
+
+            SET_BIT(ADC1->ISR, ADC_ISR_OVR);
+        }
+    }
+
+    if ((ADC1->IER & ADC_IER_JQOVFIE) && (ADC1->ISR & ADC_ISR_JQOVF)) {
+        SET_BIT(handle->state, HAL_ADC_STATE_INJ_JQOVF);
+        SET_BIT(handle->error, HAL_ADC_ERROR_JQOVF);
+        SET_BIT(ADC1->ISR, ADC_ISR_JQOVF);
+
+        if (handle->callbacks.injected_queue_overflow) {
+            handle->callbacks.injected_queue_overflow();
+        }
+    }
 }
 
 adc_handle_t *adc_get_handle() { return (adc_handle_t *)&hal_adc_handle; }
+
+void adc_link_dma(dma_handle_t *handle) {
+    hal_adc_handle.dma_handle = handle;
+    handle->parent = (void *)&hal_adc_handle;
+}

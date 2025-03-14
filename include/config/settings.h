@@ -76,7 +76,7 @@
 #ifdef DEBUG
 
 #ifndef LOG_LEVEL
-#define LOG_LEVEL LOG_LEVEL_INFO
+#define LOG_LEVEL LOG_LEVEL_TRACE
 #endif // LOG_LEVEL
 
 #ifndef DBG_LONG_BLINK_DELAY

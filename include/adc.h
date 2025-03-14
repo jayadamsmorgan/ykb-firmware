@@ -8,6 +8,4 @@ hal_err setup_adc();
 
 hal_err setup_tempsensor();
 
-hal_err adc_read_blocking(uint32_t *value);
-
 #endif // ADC_H
