@@ -526,6 +526,46 @@ hal_err adc_conversion_stop(adc_conversion_group group) {
     return OK;
 }
 
+hal_err adc_start() {
+    volatile adc_handle_t *handle = &hal_adc_handle;
+
+    if (adc_conversion_ongoing_regular() || handle->lock) {
+        return ERR_ADC_START_BUSY;
+    }
+
+    handle->lock = true;
+
+    hal_err err;
+
+    err = adc_enable();
+    if (err) {
+        handle->lock = false;
+        return err;
+    }
+
+    MODIFY_REG(handle->state,
+               HAL_ADC_STATE_READY | HAL_ADC_STATE_REG_EOC |
+                   HAL_ADC_STATE_REG_OVR | HAL_ADC_STATE_REG_EOSMP,
+               HAL_ADC_STATE_REG_BUSY);
+
+    if (handle->state & HAL_ADC_STATE_INJ_BUSY) {
+        CLEAR_BIT(handle->error, (HAL_ADC_ERROR_OVR | HAL_ADC_ERROR_DMA));
+    } else {
+        handle->error = HAL_ADC_ERROR_NONE;
+    }
+
+    WRITE_REG(ADC1->ISR, (ADC_ISR_EOC | ADC_ISR_EOS | ADC_ISR_OVR));
+
+    handle->lock = false;
+
+    MODIFY_REG(ADC1->CR,
+               (ADC_CR_ADCAL | ADC_CR_JADSTP | ADC_CR_ADSTP | ADC_CR_JADSTART |
+                ADC_CR_ADSTART | ADC_CR_ADDIS | ADC_CR_ADEN),
+               ADC_CR_ADSTART);
+
+    return OK;
+}
+
 hal_err adc_start_it() {
 
     volatile adc_handle_t *handle = &hal_adc_handle;

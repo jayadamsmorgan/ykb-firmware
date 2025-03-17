@@ -407,6 +407,8 @@ hal_err adc_disable();
 
 hal_err adc_start_calibration(adc_channel_mode mode);
 
+hal_err adc_start();
+
 hal_err adc_start_it();
 hal_err adc_stop_it();
 
