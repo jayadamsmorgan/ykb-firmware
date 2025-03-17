@@ -146,8 +146,6 @@ hal_err kb_init() {
 
         LOG_TRACE("KB: Setting up ADC for MUX%d...", i + 1);
 
-        adc_channel_config_t channel_config;
-
         if (mux.common.adc_chan == ADC_CHANNEL_NONE) {
             // The selected common pin does not have an ADC channel
             LOG_CRITICAL(
@@ -156,20 +154,14 @@ hal_err kb_init() {
             return ERR_KB_COMMON_NO_ADC_CHAN;
         }
 
-        channel_config.channel = mux.common.adc_chan;
-        channel_config.mode = ADC_CHANNEL_SINGLE_ENDED;
-        channel_config.rank = ADC_CHANNEL_RANK_1;
-        channel_config.sampling_time = ADC_SMP_92_5_CYCLES;
-        channel_config.offset_type = ADC_CHANNEL_OFFSET_NONE;
-        channel_config.offset = 0;
-
-        LOG_TRACE("Configuring ADC channel for MUX%d...", i + 1);
-        adc_config_channel(&channel_config);
-
+        LOG_TRACE("Registering ADC channel for MUX%d...", i + 1);
+        err = adc_register_channel(&mux.common, NULL);
         if (err) {
-            LOG_ERROR("KB: Error initializing ADC for MUX%d: %d", i + 1, err);
+            LOG_ERROR("KB: Error registering ADC channel for MUX%d: %d", i + 1,
+                      err);
             return err;
         }
+
         LOG_TRACE("KB: ADC for MUX%d initialized.", i + 1);
 
         LOG_INFO("KB: MUX%d setup complete.", i + 1);
@@ -256,25 +248,38 @@ error_t kb_set_min_threshold(uint32_t threshold, bool blocking) {
     return 0;
 }
 
-static inline hal_err kb_key_pressed_by_threshold(mux_t *mux, uint8_t channel,
-                                                  uint16_t *const value) {
+static inline bool kb_key_pressed_by_threshold(mux_t *mux, uint8_t channel,
+                                               uint16_t *const value) {
     mux_select_channel(mux, channel);
 
-    uint32_t tmp_value = 0;
-    // hal_err err;
+    // TODO: May need some delay here...
 
-    // err = adc_read_blocking(&tmp_value, &tmp_value);
-    //
-    // if (err) {
-    //     LOG_ERROR("KB: Error reading ADC.");
-    //     return err;
-    // }
+    hal_err err = adc_start();
+    if (err) {
+        LOG_CRITICAL("KB: Unable to start ADC conversion: Error %d", err);
+        ERR_H(err);
+    }
+
+    uint32_t tmp_value = adc_get_value();
 
     if (value) {
-        // *value = tmp_value;
+        *value = tmp_value;
     }
 
     return tmp_value >= kb_state.key_threshold;
+}
+
+static inline uint8_t kb_key_code_by_position(uint8_t mux_number,
+                                              uint8_t position) {
+    switch (mux_number) {
+    case 0:
+        return mappings[position];
+    case 1:
+        return mappings[MUX1_KEY_COUNT + position];
+    case 2:
+        return mappings[MUX1_KEY_COUNT + MUX2_KEY_COUNT + position];
+    }
+    return 0;
 }
 
 static uint8_t hid_buff[8];
@@ -283,25 +288,28 @@ void kb_poll_normal() {
 
     memset(hid_buff, 0, sizeof(hid_buff));
 
-    uint8_t pressed_amount = 2;
-    uint8_t index = 0;
+    uint8_t pressed_amount = 0;
 
-    for (uint8_t i = 0; i < 3; i++) {
+    for (uint8_t i = 0; i < MAX_CHANNELS_PER_MUX; i++) {
 
-        mux_t *mux = &muxes[i];
+        for (uint8_t j = 0; j < 3; j++) {
 
-        for (uint8_t j = 0; j < mux->channel_amount; j++) {
+            mux_t *mux = &muxes[j];
 
-            hal_err err = kb_key_pressed_by_threshold(mux, i, NULL);
+            if (i >= mux->channel_amount) {
+                continue;
+            }
 
-            if (err > 0) {
-                // Key press occured
-                LOG_DEBUG("KB: Key %c pressed.", kb_state.mappings[index + j]);
-                hid_buff[pressed_amount++] = kb_state.mappings[index + j];
+            if (kb_key_pressed_by_threshold(mux, i, NULL)) {
+                uint8_t key = kb_key_code_by_position(j, i);
+                LOG_DEBUG("KB: Key with HID code %d pressed.", key);
+                hid_buff[2 + pressed_amount] = key;
+                pressed_amount++;
+                if (pressed_amount >= 6) {
+                    return;
+                }
             }
         }
-
-        index += mux->channel_amount;
     }
 }
 
