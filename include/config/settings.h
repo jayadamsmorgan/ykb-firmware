@@ -91,6 +91,16 @@
 
 //
 //
+// Change with caution:
+//
+
+#define MAX3(a, b, c)                                                          \
+    (((a) > (b)) ? ((a) > (c) ? (a) : (c)) : ((b) > (c) ? (b) : (c)))
+#define MAX_CHANNELS_PER_MUX                                                   \
+    MAX3(MUX1_KEY_COUNT, MUX2_KEY_COUNT, MUX3_KEY_COUNT)
+
+//
+//
 // Checks
 //
 // Double checking settings are somewhat correct
