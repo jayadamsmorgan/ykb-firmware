@@ -358,6 +358,8 @@ hal_err adc_disable() {
         return ERR_ADC_DISABLE_CONV_ONGOING;
     }
 
+    SET_BIT(ADC1->CR, ADC_CR_ADDIS);
+
     uint32_t tick_start = systick_get_tick();
 
     while (READ_BIT(ADC1->CR, ADC_CR_ADEN)) {
