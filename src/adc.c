@@ -1,54 +1,6 @@
 #include "adc.h"
 
-#include "error_handler.h"
-#include "hal/adc.h"
-#include "hal/cortex.h"
-#include "hal/gpio.h"
-#include "hal/systick.h"
 #include "logging.h"
-#include "utils/utils.h"
-#include <stdint.h>
-
-#define ADC_CHANNELS_USED 3
-
-#ifndef ADC_DEFAULT_SAMPLING
-#define ADC_DEFAULT_SAMPLING ADC_SMP_92_5_CYCLES;
-#endif // ADC_DEFAULT_SAMPLING
-
-static uint8_t adc_ranks_index = 0;
-static const adc_channel_rank_t adc_ranks[ADC_CHANNELS_USED] = {
-    ADC_CHANNEL_RANK_1, ADC_CHANNEL_RANK_2, ADC_CHANNEL_RANK_3};
-
-hal_err adc_register_channel(const gpio_pin_t *pin, uint8_t *rank_number) {
-    if (adc_ranks_index >= ADC_CHANNELS_USED) {
-        return -1;
-    }
-
-    if (!pin || pin->adc_chan == ADC_CHANNEL_NONE) {
-        return -2;
-    }
-
-    adc_channel_config_t config;
-    config.channel = pin->adc_chan;
-    config.rank = adc_ranks[adc_ranks_index];
-    config.mode = ADC_CHANNEL_SINGLE_ENDED;
-    config.sampling_time = ADC_DEFAULT_SAMPLING;
-    config.offset_type = ADC_CHANNEL_OFFSET_NONE;
-    config.offset = 0;
-
-    hal_err err = adc_config_channel(&config);
-    if (err) {
-        return err;
-    }
-
-    if (rank_number) {
-        *rank_number = adc_ranks_index;
-    }
-
-    adc_ranks_index++;
-
-    return OK;
-}
 
 hal_err setup_adc() {
 
@@ -65,7 +17,8 @@ hal_err setup_adc() {
     init.eoc_flag = ADC_EOC_SINGLE_CONVERSION;
     init.lp_autowait = ADC_LP_AUTOWAIT_DISABLE;
     init.conversion_mode = ADC_CONVERSION_SINGLE;
-    init.regular_channel_sequence_length = ADC_CHANNELS_USED - 1;
+    init.regular_channel_sequence_length =
+        ADC_CHANNEL_SEQUENCE_LENGTH_1_CONVERSION;
     init.sequence_mode = ADC_SEQUENCE_DISCONTINUOUS;
     init.trigger_source = ADC_TRIGGER_SOFTWARE;
     init.trigger_edge = ADC_TRIGGER_EDGE_NONE;

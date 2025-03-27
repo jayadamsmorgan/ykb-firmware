@@ -1,6 +1,7 @@
 #ifndef KEYBOARD_H
 #define KEYBOARD_H
 
+#include "hal/adc.h"
 #include "hal/hal_err.h"
 #include "mappings.h"
 #include "settings.h"
@@ -20,6 +21,7 @@ typedef struct {
 
     uint16_t key_threshold;
     uint16_t key_polling_rate;
+    adc_sampling_time adc_sampling_time;
 
     kb_mode mode;
 

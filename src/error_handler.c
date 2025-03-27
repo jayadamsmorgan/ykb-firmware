@@ -1,14 +1,11 @@
 #include "error_handler.h"
 
-#include "hal/gpio.h"
-#include "hal/hal_err.h"
 #include "hal/systick.h"
 #include "logging.h"
 #include "pinout.h"
 #include "settings.h"
-#include <stdlib.h>
 
-static const gpio_pin_t led_dbg = PB0; // TODO: change to PIN_LED_DBG
+static const gpio_pin_t led_dbg = PIN_LED_DBG1;
 
 void setup_error_handler() {
 

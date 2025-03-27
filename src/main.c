@@ -1,23 +1,21 @@
+#include "logging.h"
+#include "version.h"
+
+#include "hal/hal.h"
+
 #include "adc.h"
 #include "boot0_handler.h"
 #include "clock.h"
 #include "crs.h"
 #include "error_handler.h"
-#include "hal/adc.h"
-#include "hal/gpio.h"
-#include "hal/hal.h"
-#include "hal/systick.h"
 #include "keyboard.h"
-#include "logging.h"
-#include "test_button_handler.h"
 #include "usb.h"
-#include "version.h"
-#include <stdint.h>
 
 int main(void) {
 
     // Base
-    LOG_INFO("Start booting...");
+    LOG_INFO("Start booting YarmanKB Dactyl firmware "
+             "version " YARMANKB_DACTYL_FW_VERSION);
     system_init();
     LOG_TRACE("CORE: System init OK.");
     setup_error_handler();
@@ -29,11 +27,10 @@ int main(void) {
 
     // Misc
     ERR_H(setup_boot0_handler());
-    ERR_H(setup_test_button_handler());
 
     // Main
-    ERR_H(kb_init());
     ERR_H(setup_adc());
+    ERR_H(kb_init());
     ERR_H(setup_usb());
 
     LOG_INFO("MAIN: Successfully booted.");

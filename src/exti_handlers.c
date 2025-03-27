@@ -1,7 +1,4 @@
-#include "hal/cortex.h"
 #include "logging.h"
-#include "stm32wb55xx.h"
-#include "stm32wbxx.h"
 #include "utils/utils.h"
 
 __weak void exti_handler_0() {}

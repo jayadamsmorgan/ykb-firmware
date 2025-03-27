@@ -5,6 +5,7 @@
 #include "hal/adc.h"
 #include "hal/gpio.h"
 #include "hal/hal_err.h"
+#include "hal/systick.h"
 #include "logging.h"
 #include "mappings.h"
 #include "mux.h"
@@ -23,6 +24,7 @@ static kb_state_t kb_state = {
     .mode = KB_MODE_NORMAL,
     .key_threshold = KB_KEY_THRESHOLD_DEFAULT,
     .key_amount = KB_KEY_COUNT,
+    .adc_sampling_time = KB_ADC_SAMPLING_DEFAULT,
 };
 
 __ALIGN_BEGIN static uint8_t mappings[KB_KEY_COUNT] __ALIGN_END = {
@@ -154,14 +156,6 @@ hal_err kb_init() {
             return ERR_KB_COMMON_NO_ADC_CHAN;
         }
 
-        LOG_TRACE("Registering ADC channel for MUX%d...", i + 1);
-        err = adc_register_channel(&mux.common, NULL);
-        if (err) {
-            LOG_ERROR("KB: Error registering ADC channel for MUX%d: %d", i + 1,
-                      err);
-            return err;
-        }
-
         LOG_TRACE("KB: ADC for MUX%d initialized.", i + 1);
 
         LOG_INFO("KB: MUX%d setup complete.", i + 1);
@@ -252,12 +246,13 @@ static inline bool kb_key_pressed_by_threshold(mux_t *mux, uint8_t channel,
                                                uint16_t *const value) {
     mux_select_channel(mux, channel);
 
-    // TODO: May need some delay here...
-
     hal_err err = adc_start();
     if (err) {
-        LOG_CRITICAL("KB: Unable to start ADC conversion: Error %d", err);
+        LOG_CRITICAL("KB: ADC read error %d", err);
         ERR_H(err);
+    }
+
+    while (adc_conversion_ongoing_regular()) {
     }
 
     uint32_t tmp_value = adc_get_value();
@@ -290,19 +285,28 @@ void kb_poll_normal() {
 
     uint8_t pressed_amount = 0;
 
-    for (uint8_t i = 0; i < MAX_CHANNELS_PER_MUX; i++) {
+    for (uint8_t i = 0; i < 3; i++) {
 
-        for (uint8_t j = 0; j < 3; j++) {
+        mux_t *mux = &muxes[i];
 
-            mux_t *mux = &muxes[j];
+        adc_channel_config_t channel_config;
+        channel_config.mode = ADC_CHANNEL_SINGLE_ENDED;
+        channel_config.rank = ADC_CHANNEL_RANK_1;
+        channel_config.offset_type = ADC_CHANNEL_OFFSET_NONE;
+        channel_config.offset = 0;
+        channel_config.channel = mux->common.adc_chan;
+        channel_config.sampling_time = KB_ADC_SAMPLING_DEFAULT;
+        hal_err err = adc_config_channel(&channel_config);
+        if (err) {
+            LOG_CRITICAL("KB: Unable to config ADC channel: Error %d", err);
+            ERR_H(err);
+        }
 
-            if (i >= mux->channel_amount) {
-                continue;
-            }
-
-            if (kb_key_pressed_by_threshold(mux, i, NULL)) {
-                uint8_t key = kb_key_code_by_position(j, i);
-                LOG_DEBUG("KB: Key with HID code %d pressed.", key);
+        for (uint8_t j = 0; j < mux->channel_amount; j++) {
+            if (kb_key_pressed_by_threshold(mux, j, NULL)) {
+                uint8_t key = kb_key_code_by_position(i, j);
+                LOG_DEBUG("KB: Key with HID code %d pressed. MUX%d, CH%d", key,
+                          i, j);
                 hid_buff[2 + pressed_amount] = key;
                 pressed_amount++;
                 if (pressed_amount >= 6) {

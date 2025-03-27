@@ -1,9 +1,6 @@
 #include "boot0_handler.h"
 
-#include "error_handler.h"
-#include "hal/bits.h"
 #include "hal/gpio.h"
-#include "hal/hal_err.h"
 #include "logging.h"
 
 static volatile gpio_pin_t sw = PH3;

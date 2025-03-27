@@ -1,12 +1,8 @@
 #include "clock.h"
 
-#include "error_handler.h"
 #include "hal/clock.h"
 #include "hal/flash.h"
-#include "hal/hal_err.h"
 #include "logging.h"
-#include "stm32wbxx.h"
-#include "system_stm32wbxx.h"
 
 // Use HSE and the PLL to get a 64MHz SYSCLK
 inline hal_err setup_clock() {

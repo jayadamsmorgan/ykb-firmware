@@ -1,6 +1,5 @@
 #include "crs.h"
 
-#include "hal/crs.h"
 #include "logging.h"
 
 hal_err setup_crs() {

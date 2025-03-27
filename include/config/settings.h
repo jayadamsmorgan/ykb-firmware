@@ -7,15 +7,19 @@
 //
 
 #ifndef KB_KEY_THRESHOLD_DEFAULT
-#define KB_KEY_THRESHOLD_DEFAULT 500
+#define KB_KEY_THRESHOLD_DEFAULT 750
 #endif // KB_KEY_THRESHOLD_DEFAULT
+
+#ifndef KB_ADC_SAMPLING_DEFAULT
+#define KB_ADC_SAMPLING_DEFAULT ADC_SMP_92_5_CYCLES
+#endif // KB_ADC_SAMPLING_DEFAULT
 
 // Left part settings:
 
 #ifdef LEFT
 
 #ifndef KB_KEY_COUNT
-#define KB_KEY_COUNT 34
+#define KB_KEY_COUNT 36
 #endif // KB_KEY_COUNT
 
 #endif // LEFT
@@ -25,7 +29,7 @@
 #ifdef RIGHT
 
 #ifndef KB_KEY_COUNT
-#define KB_KEY_COUNT 34
+#define KB_KEY_COUNT 36
 #endif // KB_KEY_COUNT
 
 #endif // RIGHT
@@ -39,15 +43,15 @@
 #ifdef LEFT
 
 #ifndef MUX1_KEY_COUNT
-#define MUX1_KEY_COUNT 12
+#define MUX1_KEY_COUNT 11
 #endif // MUX1_KEY_COUNT
 
 #ifndef MUX2_KEY_COUNT
-#define MUX2_KEY_COUNT 11
+#define MUX2_KEY_COUNT 15
 #endif // MUX2_KEY_COUNT
 
 #ifndef MUX3_KEY_COUNT
-#define MUX3_KEY_COUNT 11
+#define MUX3_KEY_COUNT 10
 #endif // MUX3_KEY_COUNT
 
 #endif // LEFT
@@ -55,11 +59,11 @@
 #ifdef RIGHT
 
 #ifndef MUX1_KEY_COUNT
-#define MUX1_KEY_COUNT 12
+#define MUX1_KEY_COUNT 10
 #endif // MUX1_KEY_COUNT
 
 #ifndef MUX2_KEY_COUNT
-#define MUX2_KEY_COUNT 11
+#define MUX2_KEY_COUNT 15
 #endif // MUX2_KEY_COUNT
 
 #ifndef MUX3_KEY_COUNT
@@ -76,7 +80,7 @@
 #ifdef DEBUG
 
 #ifndef LOG_LEVEL
-#define LOG_LEVEL LOG_LEVEL_TRACE
+#define LOG_LEVEL LOG_LEVEL_DEBUG
 #endif // LOG_LEVEL
 
 #ifndef DBG_LONG_BLINK_DELAY
