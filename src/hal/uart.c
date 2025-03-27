@@ -146,7 +146,7 @@ anyuart_get_clock_source(volatile uart_handle_t *handle) {
         }
     }
     if (handle->instance == USART1) {
-        switch (READ_BITS(RCC->CCIPR, RCC_CCIPR_LPUART1SEL_Pos, BITMASK_2BIT)) {
+        switch (READ_BITS(RCC->CCIPR, RCC_CCIPR_USART1SEL_Pos, BITMASK_2BIT)) {
         case 0U:
             return UART_CLOCK_SOURCE_PCLK2;
         case 1U:
