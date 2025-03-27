@@ -77,8 +77,8 @@ COMMON_FLAGS = -Wall -Wextra -Werror \
 
 LDFLAGS = -T $(LD_SCRIPT) -lc -lm -lnosys --specs=nano.specs -Wl,--gc-sections
 
-DEBUG_CFLAGS   = -g -gdwarf-2 -Og -DHAL_UART_ENABLED -DDEBUG -DGIT_HASH=\"$(GIT_HASH)\"
-RELEASE_CFLAGS = -O2
+DEBUG_CFLAGS   = -g -gdwarf-2 -Og -DHAL_LPUART_ENABLED -DDEBUG -DGIT_HASH=\"$(GIT_HASH)\"
+RELEASE_CFLAGS = -O3
 
 LEFT_FLAG  = -DLEFT
 RIGHT_FLAG = -DRIGHT

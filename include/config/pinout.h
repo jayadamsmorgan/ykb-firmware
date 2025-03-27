@@ -79,4 +79,12 @@
 #define PIN_SK6812_LED PA3
 #endif // PIN_SK6812_LED
 
+#ifndef PIN_LPUART_RX
+#define PIN_LPUART_RX PB10
+#endif // PIN_LPUART_RX
+
+#ifndef PIN_LPUART_TX
+#define PIN_LPUART_TX PA2
+#endif // PIN_LPUART_TX
+
 #endif // CONFIG_PINOUT_H

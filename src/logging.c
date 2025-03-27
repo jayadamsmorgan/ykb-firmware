@@ -1,8 +1,8 @@
-#include <stdint.h>
-#if defined(DEBUG) && defined(HAL_UART_ENABLED)
+#if defined(DEBUG) && defined(HAL_LPUART_ENABLED)
 
 #include "logging.h"
 
+#include "config/pinout.h"
 #include "hal/uart.h"
 #include "settings.h"
 #include "utils/utils.h"
@@ -57,6 +57,9 @@ void _log(log_level level, const char *format, ...) {
 
 hal_err setup_logging() {
 
+    gpio_turn_on_port(PIN_LED_DBG2.gpio);
+    gpio_set_mode(PIN_LED_DBG2, GPIO_MODE_OUTPUT);
+
     uart_init_t init;
     init.baudrate = 115200;
     init.word_length = UART_WORD_LENGTH_8B;
@@ -66,29 +69,29 @@ hal_err setup_logging() {
     init.flow_control = UART_HW_FLOW_CONTROL_NONE;
     init.oversampling = UART_OVERSAMPLING_16;
     init.one_bit_sampling = UART_ONE_BIT_SAMPLING_DISABLE;
-    init.clock_prescaler = UART_CLOCK_PRESCALER_DIV1;
+    init.clock_prescaler = UART_CLOCK_PRESCALER_DIV4;
     init.advanced.enable = false;
-    init.rx_pin = PB7;
-    init.tx_pin = PB6;
+    init.rx_pin = PIN_LPUART_RX;
+    init.tx_pin = PIN_LPUART_TX;
 
     hal_err err;
 
-    err = uart_init(&init);
+    err = lpuart_init(&init);
     if (err) {
         return err;
     }
 
-    err = uart_set_txfifo_threshold(UART_TXFIFO_THRESHOLD_1_8);
+    err = lpuart_set_txfifo_threshold(UART_TXFIFO_THRESHOLD_1_8);
     if (err) {
         return err;
     }
 
-    err = uart_set_rxfifo_threshold(UART_RXFIFO_THRESHOLD_1_8);
+    err = lpuart_set_rxfifo_threshold(UART_RXFIFO_THRESHOLD_1_8);
     if (err) {
         return err;
     }
 
-    err = uart_fifo_disable();
+    err = lpuart_fifo_disable();
     if (err) {
         return err;
     }
@@ -96,10 +99,10 @@ hal_err setup_logging() {
     if (log_str_queue_index > 0) {
 
         for (uint8_t i = 0; i < log_str_queue_index; i++) {
-            gpio_digital_write(PB0, HIGH);
+            gpio_digital_write(PIN_LED_DBG2, HIGH);
             string_to_write str = log_str_queue[i];
-            uart_transmit((uint8_t *)str.data, str.len, 0xFFFF);
-            gpio_digital_write(PB0, LOW);
+            lpuart_transmit((uint8_t *)str.data, str.len, 0xFFFF);
+            gpio_digital_write(PIN_LED_DBG2, LOW);
         }
 
         log_str_queue_index = 0;
@@ -115,9 +118,9 @@ int _write(int file, char *ptr, int len) {
 
     if (logging_set_up) {
 
-        gpio_digital_write(PB0, HIGH);
-        uart_transmit((uint8_t *)ptr, len, 0xFFFF);
-        gpio_digital_write(PB0, LOW);
+        gpio_digital_write(PIN_LED_DBG2, HIGH);
+        lpuart_transmit((uint8_t *)ptr, len, 0xFFFF);
+        gpio_digital_write(PIN_LED_DBG2, LOW);
 
         return len;
     }
