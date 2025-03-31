@@ -6,12 +6,14 @@
 #include "hal/gpio.h"
 #include "hal/hal_err.h"
 #include "hal/systick.h"
+#include "keys.h"
 #include "logging.h"
 #include "mappings.h"
 #include "mux.h"
 #include "pinout.h"
 #include "settings.h"
 #include "usb/usbd_hid.h"
+#include "utils/utils.h"
 #include <stdint.h>
 #include <stdio.h>
 #include <string.h>
@@ -31,41 +33,37 @@ __ALIGN_BEGIN static uint8_t mappings[KB_KEY_COUNT] __ALIGN_END = {
 
 #ifdef LEFT
 
-    KEY00,  KEY01,  KEY02,  KEY03,
+    // MUX1:
 
-    KEY10,  KEY11,  KEY12,  KEY13,  KEY14,
+    KEY70, KEY71, KEY72, KEY61, KEY54, KEY50, KEY51, KEY52, KEY53, KEY_NOKEY,
+    KEY60,
 
-    KEY20,  KEY21,  KEY22,  KEY23,  KEY24,
+    // MUX2:
 
-    KEY30,  KEY31,  KEY32,  KEY33,  KEY34,
+    KEY40, KEY41, KEY42, KEY43, KEY44, KEY30, KEY31, KEY32, KEY33, KEY34, KEY20,
+    KEY21, KEY22, KEY23, KEY24,
 
-    KEY40,  KEY41,  KEY42,  KEY43,  KEY44,
+    // MUX3:
 
-    KEY50,  KEY51,  KEY52,  KEY53,  KEY54,
-
-    KEY60,  KEY61,
-
-    KEY70,  KEY71,  KEY72,
+    KEY10, KEY11, KEY12, KEY13, KEY14, KEY00, KEY01, KEY02, KEY03,
 
 #endif // LEFT
 
 #ifdef RIGHT
 
-    KEY80,  KEY81,  KEY82,
+    // MUX1:
 
-    KEY90,  KEY91,
+    KEY80, KEY81, KEY82, KEY91, KEY104, KEY100, KEY101, KEY102, KEY103,
+    KEY_NOKEY, KEY90,
 
-    KEY100, KEY101, KEY102, KEY103, KEY104,
+    // MUX2:
 
-    KEY110, KEY111, KEY112, KEY113, KEY114,
+    KEY110, KEY111, KEY112, KEY113, KEY114, KEY120, KEY121, KEY122, KEY123,
+    KEY124, KEY130, KEY131, KEY132, KEY133, KEY134,
 
-    KEY120, KEY121, KEY122, KEY123, KEY124,
+    // MUX3:
 
-    KEY130, KEY131, KEY132, KEY133, KEY134,
-
-    KEY140, KEY141, KEY142, KEY143, KEY144,
-
-    KEY150, KEY151, KEY152, KEY153,
+    KEY140, KEY141, KEY142, KEY143, KEY144, KEY150, KEY151, KEY152, KEY153
 
 #endif // RIGHT
 
@@ -277,13 +275,89 @@ static inline uint8_t kb_key_code_by_position(uint8_t mux_number,
     return 0;
 }
 
-static uint8_t hid_buff[8];
+static uint8_t hid_buff[HID_BUFFER_SIZE];
+static uint8_t pressed_amount = 0;
+
+static uint8_t fn_buff[HID_BUFFER_SIZE - 2];
+static uint8_t fn_pressed_amount = 0;
+static bool fn_pressed;
+
+static inline void kb_process_key(uint8_t key) {
+
+    if (key == KEY_FN) {
+        fn_pressed = true;
+        return;
+    }
+
+    if (key == KEY_LAYER) {
+        // TODO
+        return;
+    }
+
+    if (fn_pressed && fn_pressed_amount < HID_BUFFER_SIZE - 2) {
+
+        fn_buff[fn_pressed_amount] = key;
+        fn_pressed_amount++;
+
+        return;
+    }
+
+    if (key < KEY_LEFTCONTROL) {
+        // Regular
+
+        hid_buff[2 + pressed_amount] = key;
+        pressed_amount++;
+
+        return;
+    }
+
+    if (key < KEY_FN) {
+        // Modifiers
+
+        switch (key) {
+        case KEY_LEFTCONTROL:
+            hid_buff[0] |= 0x01;
+            break;
+        case KEY_LEFTSHIFT:
+            hid_buff[0] |= 0x02;
+            break;
+        case KEY_LEFTALT:
+            hid_buff[0] |= 0x04;
+            break;
+        case KEY_LEFTGUI:
+            hid_buff[0] |= 0x08;
+            break;
+        case KEY_RIGHTCONTROL:
+            hid_buff[0] |= 0x10;
+            break;
+        case KEY_RIGHTSHIFT:
+            hid_buff[0] |= 0x20;
+            break;
+        case KEY_RIGHTALT:
+            hid_buff[0] |= 0x40;
+            break;
+        case KEY_RIGHTGUI:
+            hid_buff[0] |= 0x80;
+            break;
+        }
+        return;
+    }
+}
+
+static inline void kb_process_fn_buff() {
+    // TODO
+
+    memset(fn_buff, 0, HID_BUFFER_SIZE - 2);
+    fn_pressed = false;
+    fn_pressed_amount = 0;
+}
 
 void kb_poll_normal() {
 
-    memset(hid_buff, 0, sizeof(hid_buff));
-
-    uint8_t pressed_amount = 0;
+    if (hid_buff[0] != KEY_NOKEY || hid_buff[2] != KEY_NOKEY) {
+        memset(hid_buff, 0, HID_BUFFER_SIZE);
+        pressed_amount = 0;
+    }
 
     for (uint8_t i = 0; i < 3; i++) {
 
@@ -295,7 +369,7 @@ void kb_poll_normal() {
         channel_config.offset_type = ADC_CHANNEL_OFFSET_NONE;
         channel_config.offset = 0;
         channel_config.channel = mux->common.adc_chan;
-        channel_config.sampling_time = KB_ADC_SAMPLING_DEFAULT;
+        channel_config.sampling_time = kb_state.adc_sampling_time;
         hal_err err = adc_config_channel(&channel_config);
         if (err) {
             LOG_CRITICAL("KB: Unable to config ADC channel: Error %d", err);
@@ -306,14 +380,17 @@ void kb_poll_normal() {
             if (kb_key_pressed_by_threshold(mux, j, NULL)) {
                 uint8_t key = kb_key_code_by_position(i, j);
                 LOG_DEBUG("KB: Key with HID code %d pressed. MUX%d, CH%d", key,
-                          i, j);
-                hid_buff[2 + pressed_amount] = key;
-                pressed_amount++;
-                if (pressed_amount >= 6) {
+                          i + 1, j);
+                kb_process_key(key);
+                if (pressed_amount >= HID_BUFFER_SIZE - 2) {
                     return;
                 }
             }
         }
+    }
+
+    if (fn_pressed) {
+        kb_process_fn_buff();
     }
 }
 
@@ -342,5 +419,5 @@ void kb_handle(bool blocking) {
         break;
     }
 
-    USBD_HID_SendReport(&hUsbDeviceFS, hid_buff, 8);
+    USBD_HID_SendReport(&hUsbDeviceFS, hid_buff, HID_BUFFER_SIZE);
 }

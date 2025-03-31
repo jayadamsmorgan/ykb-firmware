@@ -14,12 +14,16 @@
 #define KB_ADC_SAMPLING_DEFAULT ADC_SMP_92_5_CYCLES
 #endif // KB_ADC_SAMPLING_DEFAULT
 
+#ifndef HID_BUFFER_SIZE
+#define HID_BUFFER_SIZE 8
+#endif // HID_BUFFER_SIZE
+
 // Left part settings:
 
 #ifdef LEFT
 
 #ifndef KB_KEY_COUNT
-#define KB_KEY_COUNT 36
+#define KB_KEY_COUNT 35
 #endif // KB_KEY_COUNT
 
 #endif // LEFT
@@ -29,7 +33,7 @@
 #ifdef RIGHT
 
 #ifndef KB_KEY_COUNT
-#define KB_KEY_COUNT 36
+#define KB_KEY_COUNT 35
 #endif // KB_KEY_COUNT
 
 #endif // RIGHT
@@ -38,8 +42,9 @@
 //
 // Multiplexors Settings
 //
-// Firmware assumes Hall sensors are connected
-// channels [0 - (MUXX_KEY_COUNT-1)]
+// Both KB_KEY_COUNT and MUXx_KEY_COUNT
+// might be greater than the actual key count
+// Because some of the channels are skipped
 #ifdef LEFT
 
 #ifndef MUX1_KEY_COUNT
@@ -51,7 +56,7 @@
 #endif // MUX2_KEY_COUNT
 
 #ifndef MUX3_KEY_COUNT
-#define MUX3_KEY_COUNT 10
+#define MUX3_KEY_COUNT 9
 #endif // MUX3_KEY_COUNT
 
 #endif // LEFT
@@ -59,7 +64,7 @@
 #ifdef RIGHT
 
 #ifndef MUX1_KEY_COUNT
-#define MUX1_KEY_COUNT 10
+#define MUX1_KEY_COUNT 11
 #endif // MUX1_KEY_COUNT
 
 #ifndef MUX2_KEY_COUNT
@@ -67,7 +72,7 @@
 #endif // MUX2_KEY_COUNT
 
 #ifndef MUX3_KEY_COUNT
-#define MUX3_KEY_COUNT 11
+#define MUX3_KEY_COUNT 9
 #endif // MUX3_KEY_COUNT
 
 #endif // RIGHT

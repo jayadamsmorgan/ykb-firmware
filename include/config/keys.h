@@ -3,6 +3,7 @@
 
 // Standard
 
+#define KEY_NOKEY 0x00
 #define KEY_A 0x04
 #define KEY_B 0x05
 #define KEY_C 0x06
@@ -212,6 +213,9 @@
 #define KEY_KEYPAD_OCTAL 0xDB
 #define KEY_KEYPAD_DECIMAL 0xDC
 #define KEY_KEYPAD_HEXADECIMAL 0xDD
+
+// Modifiers
+
 #define KEY_LEFTCONTROL 0xE0
 #define KEY_LEFTSHIFT 0xE1
 #define KEY_LEFTALT 0xE2
