@@ -64,7 +64,7 @@ __ALIGN_BEGIN static uint8_t
         0x01, 0x00,          /* bCountryCode: Hardware target country */
         0x01, /* bNumDescriptors: Number of HID class descriptors to follow */
         0x22, /* bDescriptorType */
-        HID_MOUSE_REPORT_DESC_SIZE, /* wItemLength: Total length of Report
+        HID_KB_REPORT_DESC_SIZE, /* wItemLength: Total length of Report
                                        descriptor */
         0x00,
         /******************** Descriptor of Mouse endpoint ********************/
@@ -89,7 +89,7 @@ __ALIGN_BEGIN static uint8_t USBD_HID_Desc[USB_HID_DESC_SIZ] __ALIGN_END = {
     0x00, /* bCountryCode: Hardware target country */
     0x01, /* bNumDescriptors: Number of HID class descriptors to follow */
     0x22, /* bDescriptorType */
-    HID_MOUSE_REPORT_DESC_SIZE, /* wItemLength: Total length of Report
+    HID_KB_REPORT_DESC_SIZE, /* wItemLength: Total length of Report
                                    descriptor */
     0x00,
 };
@@ -110,7 +110,7 @@ __ALIGN_BEGIN static uint8_t
 };
 
 __ALIGN_BEGIN static uint8_t
-    HID_KB_ReportDesc[HID_MOUSE_REPORT_DESC_SIZE] __ALIGN_END = {
+    HID_KB_ReportDesc[HID_KB_REPORT_DESC_SIZE] __ALIGN_END = {
         0x05, 0x01, /* Usage Page (Generic Desktop Ctrls)         */
         0x09, 0x06, /* Usage (Keyboard)                            */
         0xA1, 0x01, /* Collection (Application)                    */
@@ -258,7 +258,7 @@ static uint8_t USBD_HID_Setup(USBD_HandleTypeDef *pdev,
 
         case USB_REQ_GET_DESCRIPTOR:
             if ((req->wValue >> 8) == HID_REPORT_DESC) {
-                len = MIN(HID_MOUSE_REPORT_DESC_SIZE, req->wLength);
+                len = MIN(HID_KB_REPORT_DESC_SIZE, req->wLength);
                 pbuf = HID_KB_ReportDesc;
             } else if ((req->wValue >> 8) == HID_DESCRIPTOR_TYPE) {
                 pbuf = USBD_HID_Desc;
