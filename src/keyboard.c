@@ -419,5 +419,6 @@ void kb_handle(bool blocking) {
         break;
     }
 
-    USBD_HID_SendReport(&hUsbDeviceFS, hid_buff, HID_BUFFER_SIZE);
+    USBD_HID_SendReport(&hUsbDeviceFS, HID_EPIN_ADDR, hid_buff,
+                        HID_BUFFER_SIZE);
 }

@@ -8,8 +8,9 @@
 #endif /* HID_EPIN_ADDR */
 #define HID_EPIN_SIZE 0x04U
 
-#define USB_HID_CONFIG_DESC_SIZ 34U
+#define USB_HID_CONFIG_DESC_SIZ 66U
 #define USB_HID_DESC_SIZ 9U
+#define USB_VEND_HID_DESC_SIZ 9U
 #define HID_KB_REPORT_DESC_SIZE 63U
 
 #define HID_DESCRIPTOR_TYPE 0x21U
@@ -27,6 +28,11 @@
 
 #define USBD_HID_REQ_SET_REPORT 0x09U
 #define USBD_HID_REQ_GET_REPORT 0x01U
+
+#define VEND_HID_EPIN_ADDR 0x82U
+#define VEND_HID_EPOUT_ADDR 0x02U
+#define VEND_HID_EPSIZE 0x40U
+#define VEND_HID_REPORT_DESC_SIZE 64U
 
 typedef enum {
     USBD_HID_IDLE = 0,
@@ -58,8 +64,8 @@ typedef struct {
 extern USBD_ClassTypeDef USBD_HID;
 #define USBD_HID_CLASS &USBD_HID
 
-uint8_t USBD_HID_SendReport(USBD_HandleTypeDef *pdev, uint8_t *report,
-                            uint16_t len);
+uint8_t USBD_HID_SendReport(USBD_HandleTypeDef *pdev, uint8_t ep_addr,
+                            uint8_t *report, uint16_t len);
 uint32_t USBD_HID_GetPollingInterval(USBD_HandleTypeDef *pdev);
 
 #endif /* __USB_HID_H */
