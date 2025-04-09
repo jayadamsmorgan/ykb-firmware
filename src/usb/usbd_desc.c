@@ -7,7 +7,12 @@
 #define USBD_VID 0x6969
 #define USBD_LANGID_STRING 1033
 #define USBD_MANUFACTURER_STRING "Yarman Production"
+#ifdef LEFT
 #define USBD_PID 0x0001
+#endif // LEFT
+#ifdef RIGHT
+#define USBD_PID 0x0002
+#endif // RIGHT
 #define USBD_PRODUCT_STRING "Yarman Keyboard"
 #define USBD_CONFIGURATION_STRING "HID Config"
 #define USBD_INTERFACE_STRING "HID Interface"
