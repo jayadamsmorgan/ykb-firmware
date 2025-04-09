@@ -2,6 +2,7 @@
 
 #include "hal/systick.h"
 #include "logging.h"
+#include "usb/usbd_conf.h"
 #include "usb/usbd_core.h"
 #include "usb/usbd_ctlreq.h"
 #include "usb/usbd_def.h"
@@ -35,19 +36,6 @@ USBD_ClassTypeDef USBD_HID = {
     USBD_HID_GetFSCfgDesc,
     USBD_HID_GetOtherSpeedCfgDesc,
     USBD_HID_GetDeviceQualifierDesc,
-};
-
-__ALIGN_BEGIN static uint8_t
-    VEND_HID_ReportDesc[VEND_HID_REPORT_DESC_SIZE] __ALIGN_END = {
-        0x06, 0x00, 0xFF, /* Usage Page (Vendor‑defined 0xFF00)     */
-        0x09, 0x01,       /* Usage (Vendor‑defined)                 */
-        0xA1, 0x01,       /* Collection (Application)               */
-        0x15, 0x00, 0x26, 0xFF, 0x00, /* Logical min/max 0‑255           */
-        0x75, 0x08, 0x95, 0x40, /* Report size/count 64                   */
-        0x09, 0x01, 0x81, 0x02, /*   INPUT  (Data,Var,Abs)                */
-        0x95, 0x40,             /* 64 bytes OUT …                         */
-        0x09, 0x01, 0x91, 0x02, /*   OUTPUT (Data,Var,Abs)                */
-        0xC0                    /* End Collection                         */
 };
 
 __ALIGN_BEGIN static uint8_t
@@ -229,6 +217,21 @@ __ALIGN_BEGIN static uint8_t
         0xC0 /* End Collection                              */
 };
 
+__ALIGN_BEGIN static uint8_t
+    VEND_HID_ReportDesc[VEND_HID_REPORT_DESC_SIZE] __ALIGN_END = {
+        0x06, 0x00, 0xFF, // Usage Page (Vendor-defined 0xFF00)
+        0x09, 0x01,       // Usage (Vendor-defined)
+        0xA1, 0x01,       // Collection (Application)
+        0x85, 0x01,       //   REPORT_ID (1)
+        0x15, 0x00, 0x26, 0xFF, 0x00, 0x75, 0x08, 0x95, 0x40, //   64-byte INPUT
+        0x09, 0x01, 0x81, 0x02, //   Input (Data,Var,Abs)
+
+        0x85, 0x01,             //   REPORT_ID (1) again
+        0x95, 0x40, 0x75, 0x08, //   64-byte OUTPUT
+        0x09, 0x01, 0x91, 0x02, //   Output (Data,Var,Abs)
+        0xC0                    // End Collection
+};
+
 uint8_t vendRxBuf[64];
 
 static uint8_t USBD_HID_Init(USBD_HandleTypeDef *pdev, uint8_t cfgidx) {
@@ -260,10 +263,9 @@ static uint8_t USBD_HID_Init(USBD_HandleTypeDef *pdev, uint8_t cfgidx) {
 
     pdev->ep_in[VEND_HID_EPIN_ADDR & 0xFU].bInterval = HID_FS_BINTERVAL;
     pdev->ep_out[VEND_HID_EPOUT_ADDR & 0xFU].bInterval = HID_FS_BINTERVAL;
-
-    USBD_LL_OpenEP(pdev, VEND_HID_EPIN_ADDR, USBD_EP_TYPE_INTR,
+    USBD_LL_OpenEP(pdev, VEND_HID_EPIN_ADDR, USBD_EP_TYPE_BULK,
                    VEND_HID_EPSIZE);
-    USBD_LL_OpenEP(pdev, VEND_HID_EPOUT_ADDR, USBD_EP_TYPE_INTR,
+    USBD_LL_OpenEP(pdev, VEND_HID_EPOUT_ADDR, USBD_EP_TYPE_BULK,
                    VEND_HID_EPSIZE);
 
     pdev->ep_in[VEND_HID_EPIN_ADDR & 0xFU].is_used = 1U;
@@ -272,7 +274,8 @@ static uint8_t USBD_HID_Init(USBD_HandleTypeDef *pdev, uint8_t cfgidx) {
     USBD_LL_PrepareReceive(pdev, VEND_HID_EPOUT_ADDR, vendRxBuf,
                            VEND_HID_EPSIZE);
 
-    hhid->state = USBD_HID_IDLE;
+    hhid->kb_state = USBD_HID_IDLE;
+    hhid->vend_state = USBD_HID_IDLE;
 
     return (uint8_t)USBD_OK;
 }
@@ -287,9 +290,11 @@ static uint8_t USBD_HID_DeInit(USBD_HandleTypeDef *pdev, uint8_t cfgidx) {
 
     USBD_LL_CloseEP(pdev, VEND_HID_EPIN_ADDR);
     pdev->ep_in[VEND_HID_EPIN_ADDR & 0xFU].is_used = 0U;
+    pdev->ep_in[VEND_HID_EPIN_ADDR & 0xFU].bInterval = 0U;
 
     USBD_LL_CloseEP(pdev, VEND_HID_EPOUT_ADDR);
     pdev->ep_out[VEND_HID_EPOUT_ADDR & 0xFU].is_used = 0U;
+    pdev->ep_out[VEND_HID_EPOUT_ADDR & 0xFU].bInterval = 0U;
 
     /* Free allocated memory */
     if (pdev->pClassDataCmsit[pdev->classId] != NULL) {
@@ -431,9 +436,17 @@ uint8_t USBD_HID_SendReport(USBD_HandleTypeDef *pdev, uint8_t ep_addr,
     }
 
     if (pdev->dev_state == USBD_STATE_CONFIGURED) {
-        if (hhid->state == USBD_HID_IDLE) {
-            hhid->state = USBD_HID_BUSY;
-            (void)USBD_LL_Transmit(pdev, ep_addr, report, len);
+        if (ep_addr == HID_EPIN_ADDR) {
+            if (hhid->kb_state == USBD_HID_IDLE) {
+                hhid->kb_state = USBD_HID_BUSY;
+                (void)USBD_LL_Transmit(pdev, ep_addr, report, len);
+            }
+
+        } else if (ep_addr == VEND_HID_EPIN_ADDR) {
+            if (hhid->vend_state == USBD_HID_IDLE) {
+                hhid->vend_state = USBD_HID_BUSY;
+                (void)USBD_LL_Transmit(pdev, ep_addr, report, len);
+            }
         }
     }
 
@@ -497,11 +510,13 @@ static uint8_t *USBD_HID_GetOtherSpeedCfgDesc(uint16_t *length) {
 }
 
 static uint8_t USBD_HID_DataIn(USBD_HandleTypeDef *pdev, uint8_t epnum) {
-    UNUSED(epnum);
-    /* Ensure that the FIFO is empty before a new transfer, this condition could
-    be caused by  a new transfer before the end of the previous transfer */
-    ((USBD_HID_HandleTypeDef *)pdev->pClassDataCmsit[pdev->classId])->state =
-        USBD_HID_IDLE;
+    if (epnum == (HID_EPIN_ADDR & 0x7F)) {
+        ((USBD_HID_HandleTypeDef *)pdev->pClassDataCmsit[pdev->classId])
+            ->kb_state = USBD_HID_IDLE;
+    } else if (epnum == (VEND_HID_EPIN_ADDR & 0x7F)) {
+        ((USBD_HID_HandleTypeDef *)pdev->pClassDataCmsit[pdev->classId])
+            ->vend_state = USBD_HID_IDLE;
+    }
 
     return (uint8_t)USBD_OK;
 }
@@ -510,13 +525,6 @@ static uint8_t USBD_HID_DataOut(USBD_HandleTypeDef *pdev, uint8_t epnum) {
 
     if (epnum == (VEND_HID_EPOUT_ADDR & 0x7F)) {
         /* vendRxBuf now holds the OUT report – process it here          */
-        for (int i = 0; i < 64; i++) {
-            LOG_INFO("%d", vendRxBuf[i]);
-        }
-        const char *test = "Hello host, this is the device speaking";
-        memcpy(vendRxBuf, test, strlen(test));
-        (void)USBD_LL_Transmit(pdev, VEND_HID_EPIN_ADDR, vendRxBuf,
-                               VEND_HID_EPSIZE);
         USBD_LL_PrepareReceive(pdev, VEND_HID_EPOUT_ADDR, vendRxBuf,
                                VEND_HID_EPSIZE);
     }

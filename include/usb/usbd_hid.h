@@ -29,10 +29,10 @@
 #define USBD_HID_REQ_SET_REPORT 0x09U
 #define USBD_HID_REQ_GET_REPORT 0x01U
 
-#define VEND_HID_EPIN_ADDR 0x82U
-#define VEND_HID_EPOUT_ADDR 0x02U
+#define VEND_HID_EPIN_ADDR 0x83U
+#define VEND_HID_EPOUT_ADDR 0x03U
 #define VEND_HID_EPSIZE 0x40U
-#define VEND_HID_REPORT_DESC_SIZE 64U
+#define VEND_HID_REPORT_DESC_SIZE 33U
 
 typedef enum {
     USBD_HID_IDLE = 0,
@@ -43,7 +43,8 @@ typedef struct {
     uint32_t Protocol;
     uint32_t IdleState;
     uint32_t AltSetting;
-    USBD_HID_StateTypeDef state;
+    USBD_HID_StateTypeDef kb_state;
+    USBD_HID_StateTypeDef vend_state;
 } USBD_HID_HandleTypeDef;
 
 /*

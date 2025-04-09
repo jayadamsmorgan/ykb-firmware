@@ -147,6 +147,10 @@ USBD_StatusTypeDef USBD_LL_Init(USBD_HandleTypeDef *pdev) {
                         0x4C);
     HAL_PCDEx_PMAConfig((PCD_HandleTypeDef *)pdev->pData, HID_EPIN_ADDR,
                         PCD_SNG_BUF, 0x8C);
+    HAL_PCDEx_PMAConfig((PCD_HandleTypeDef *)pdev->pData, VEND_HID_EPIN_ADDR,
+                        PCD_SNG_BUF, 0xCC);
+    HAL_PCDEx_PMAConfig((PCD_HandleTypeDef *)pdev->pData, VEND_HID_EPOUT_ADDR,
+                        PCD_SNG_BUF, 0x10C);
     return OK;
 }
 
