@@ -25,6 +25,9 @@ DEBUG_RIGHT_DIR  = $(DEBUG_DIR)/right
 RELEASE_LEFT_DIR = $(RELEASE_DIR)/left
 RELEASE_RIGHT_DIR= $(RELEASE_DIR)/right
 
+# YKB Protocol
+YKB_INC_DIR	= ykb_protocol
+
 # CMSIS / Device-Specific
 CMSIS_INC_DIR        = CMSIS_5/CMSIS/Core/Include
 CMSIS_DEVICE_INC_DIR = cmsis-device-wb/Include
@@ -66,7 +69,8 @@ GIT_HASH = $(shell git describe --dirty=+ --always)
 INCLUDES = -I$(INC_DIR) \
            -I$(CONFIG_INC_DIR) \
            -I$(CMSIS_INC_DIR) \
-           -I$(CMSIS_DEVICE_INC_DIR)
+           -I$(CMSIS_DEVICE_INC_DIR) \
+		   -I$(YKB_INC_DIR)
 
 COMMON_FLAGS = -Wall -Wextra -Werror \
                -fdata-sections -ffunction-sections \
