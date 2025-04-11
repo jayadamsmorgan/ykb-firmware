@@ -1,32 +1,21 @@
 #include "keyboard.h"
 
-#include "adc.h"
 #include "error_handler.h"
-#include "hal/adc.h"
-#include "hal/gpio.h"
-#include "hal/hal_err.h"
-#include "hal/systick.h"
-#include "keys.h"
 #include "logging.h"
-#include "mappings.h"
 #include "mux.h"
 #include "pinout.h"
-#include "settings.h"
 #include "usb/usbd_hid.h"
-#include "utils/utils.h"
 #include <stdint.h>
-#include <stdio.h>
-#include <string.h>
-#include <strings.h>
 
 //
 // KB
 
 static kb_state_t kb_state = {
-    .mode = KB_MODE_NORMAL,
-    .key_threshold = KB_KEY_THRESHOLD_DEFAULT,
-    .key_amount = KB_KEY_COUNT,
-    .adc_sampling_time = KB_ADC_SAMPLING_DEFAULT,
+    .settings =
+        {
+            .mode = KB_MODE_NORMAL,
+            .adc_sampling_time = KB_ADC_SAMPLING_DEFAULT,
+        },
 };
 
 __ALIGN_BEGIN static uint8_t mappings[KB_KEY_COUNT] __ALIGN_END = {
@@ -112,22 +101,56 @@ static mux_t muxes[3] = {
     },                                    //
 };
 
-static inline void kb_load_mappings() {
-    LOG_INFO("KB: Loading mappings...");
-    // TODO
-    // kb_state.mappings = ... (load saved from flash)
-    // if failure, use default:
-    kb_state.mappings = mappings;
-    LOG_INFO("KB: Mappings loaded.");
+static inline void kb_activate_mux_adc_channel(mux_t *mux) {
+    adc_channel_config_t channel_config;
+    channel_config.mode = ADC_CHANNEL_SINGLE_ENDED;
+    channel_config.rank = ADC_CHANNEL_RANK_1;
+    channel_config.offset_type = ADC_CHANNEL_OFFSET_NONE;
+    channel_config.offset = 0;
+    channel_config.channel = mux->common.adc_chan;
+    channel_config.sampling_time = kb_state.settings.adc_sampling_time;
+    hal_err err = adc_config_channel(&channel_config);
+    if (err) {
+        LOG_CRITICAL("KB: Unable to config ADC channel: Error %d", err);
+        ERR_H(err);
+    }
 }
 
-hal_err kb_init() {
+static inline bool kb_key_pressed_by_threshold(uint8_t key_index, mux_t *mux,
+                                               uint8_t channel,
+                                               uint16_t *const value) {
+    mux_select_channel(mux, channel);
 
-    LOG_INFO("KB: Initializing...");
+    hal_err err = adc_start();
+    if (err) {
+        LOG_CRITICAL("KB: ADC read error %d", err);
+        ERR_H(err);
+    }
+
+    while (adc_conversion_ongoing_regular()) {
+    }
+
+    uint16_t tmp_value = adc_get_value();
+
+    if (value) {
+        *value = tmp_value;
+    }
+
+    uint16_t range =
+        kb_state.max_thresholds[key_index] - kb_state.min_thresholds[key_index];
+
+    if (range == 0) {
+        return false;
+    }
+
+    uint16_t percentage = tmp_value / range * 100;
+    return percentage >= kb_state.key_thresholds[key_index];
+}
+
+static hal_err kb_init_muxes() {
 
     hal_err err;
 
-    // Init MUXes:
     for (uint8_t i = 0; i < 3; i++) {
         mux_t mux = muxes[i];
 
@@ -159,8 +182,56 @@ hal_err kb_init() {
         LOG_INFO("KB: MUX%d setup complete.", i + 1);
     }
 
-    // Load saved
-    kb_load_mappings();
+    return OK;
+}
+
+static inline void kb_init_thresholds() {
+
+    // TODO: Load from flash if saved
+
+    uint8_t index = 0;
+
+    for (uint8_t i = 0; i < 3; i++) {
+        mux_t *mux = &muxes[i];
+
+        for (uint8_t j = 0; j < mux->channel_amount; j++) {
+            kb_key_pressed_by_threshold(index, mux, j,
+                                        &kb_state.min_thresholds[index]);
+            index++;
+        }
+    }
+
+    memset(kb_state.max_thresholds, KB_KEY_MAX_VALUE_THRESHOLD_DEFAULT,
+           sizeof(kb_state.max_thresholds));
+
+    memset(kb_state.key_thresholds, KB_KEY_THRESHOLD_DEFAULT,
+           sizeof(kb_state.key_thresholds));
+}
+
+static inline hal_err kb_load_mappings() {
+    LOG_INFO("KB: Loading mappings...");
+    // TODO: Load from flash if saved
+    memcpy(kb_state.mappings, mappings, sizeof(mappings));
+    LOG_INFO("KB: Mappings loaded.");
+    return OK;
+}
+
+hal_err kb_init() {
+
+    LOG_INFO("KB: Initializing...");
+
+    hal_err err;
+    err = kb_init_muxes();
+    if (err) {
+        return err;
+    }
+
+    kb_init_thresholds();
+
+    err = kb_load_mappings();
+    if (err) {
+        return err;
+    }
 
     LOG_INFO("KB: Setup complete.");
 
@@ -180,7 +251,7 @@ error_t kb_get_mode(kb_mode *const mode, bool blocking) {
     }
 
     kb_state.lock = true;
-    *mode = kb_state.mode;
+    *mode = kb_state.settings.mode;
     kb_state.lock = false;
 
     return 0;
@@ -196,82 +267,11 @@ error_t kb_set_mode(kb_mode new_mode, bool blocking) {
     }
 
     kb_state.lock = true;
-    kb_state.mode = new_mode;
+    kb_state.settings.mode = new_mode;
     kb_state.lock = false;
 
     LOG_DEBUG("KB: New mode set: %d.", new_mode);
 
-    return 0;
-}
-
-error_t kb_get_min_threshold(uint32_t *threshold, bool blocking) {
-
-    if (blocking) {
-        while (kb_state.lock) {
-        }
-    } else if (kb_state.lock) {
-        return -1;
-    }
-
-    if (!threshold) {
-        return -2;
-    }
-
-    *threshold = kb_state.key_threshold;
-
-    return 0;
-}
-
-error_t kb_set_min_threshold(uint32_t threshold, bool blocking) {
-
-    if (blocking) {
-        while (kb_state.lock) {
-        }
-    } else if (kb_state.lock) {
-        return -1;
-    }
-
-    kb_state.lock = true;
-    kb_state.key_threshold = threshold;
-    kb_state.lock = false;
-
-    LOG_DEBUG("KB: New threshold set: %d.", threshold);
-
-    return 0;
-}
-
-static inline bool kb_key_pressed_by_threshold(mux_t *mux, uint8_t channel,
-                                               uint16_t *const value) {
-    mux_select_channel(mux, channel);
-
-    hal_err err = adc_start();
-    if (err) {
-        LOG_CRITICAL("KB: ADC read error %d", err);
-        ERR_H(err);
-    }
-
-    while (adc_conversion_ongoing_regular()) {
-    }
-
-    uint32_t tmp_value = adc_get_value();
-
-    if (value) {
-        *value = tmp_value;
-    }
-
-    return tmp_value >= kb_state.key_threshold;
-}
-
-static inline uint8_t kb_key_code_by_position(uint8_t mux_number,
-                                              uint8_t position) {
-    switch (mux_number) {
-    case 0:
-        return mappings[position];
-    case 1:
-        return mappings[MUX1_KEY_COUNT + position];
-    case 2:
-        return mappings[MUX1_KEY_COUNT + MUX2_KEY_COUNT + position];
-    }
     return 0;
 }
 
@@ -281,6 +281,9 @@ static uint8_t pressed_amount = 0;
 static uint8_t fn_buff[HID_BUFFER_SIZE - 2];
 static uint8_t fn_pressed_amount = 0;
 static bool fn_pressed;
+
+static uint8_t modifier_map[8] = {0x01, 0x02, 0x04, 0x08,
+                                  0x10, 0x20, 0x40, 0x80};
 
 static inline void kb_process_key(uint8_t key) {
 
@@ -314,32 +317,7 @@ static inline void kb_process_key(uint8_t key) {
     if (key < KEY_FN) {
         // Modifiers
 
-        switch (key) {
-        case KEY_LEFTCONTROL:
-            hid_buff[0] |= 0x01;
-            break;
-        case KEY_LEFTSHIFT:
-            hid_buff[0] |= 0x02;
-            break;
-        case KEY_LEFTALT:
-            hid_buff[0] |= 0x04;
-            break;
-        case KEY_LEFTGUI:
-            hid_buff[0] |= 0x08;
-            break;
-        case KEY_RIGHTCONTROL:
-            hid_buff[0] |= 0x10;
-            break;
-        case KEY_RIGHTSHIFT:
-            hid_buff[0] |= 0x20;
-            break;
-        case KEY_RIGHTALT:
-            hid_buff[0] |= 0x40;
-            break;
-        case KEY_RIGHTGUI:
-            hid_buff[0] |= 0x80;
-            break;
-        }
+        hid_buff[0] |= modifier_map[key - KEY_LEFTCONTROL];
         return;
     }
 }
@@ -352,6 +330,97 @@ static inline void kb_process_fn_buff() {
     fn_pressed_amount = 0;
 }
 
+static mux_t *last_activated_mux = NULL;
+
+void kb_get_settings(uint8_t *buffer) {
+    if (!buffer) {
+        return;
+    }
+    memcpy(buffer, &kb_state.settings, sizeof(kb_settings_t));
+}
+
+void kb_get_mappings(uint8_t *buffer) {
+    if (!buffer) {
+        return;
+    }
+    memcpy(buffer, kb_state.mappings, sizeof(kb_state.mappings));
+}
+
+void kb_get_values(uint8_t *buffer) {
+
+    if (!buffer) {
+        return;
+    }
+
+    uint16_t values[KB_KEY_COUNT];
+
+    uint8_t index = 0;
+    for (uint8_t i = 0; i < 3; i++) {
+        mux_t *mux = &muxes[i];
+
+        kb_activate_mux_adc_channel(mux);
+        for (uint8_t j = 0; j < mux->channel_amount; j++) {
+            uint16_t value;
+            kb_key_pressed_by_threshold(index, mux, j, &value);
+            values[index] = value;
+            index++;
+        }
+    }
+
+    memcpy(buffer, values, sizeof(values));
+
+    // If this function is triggered by an incoming USB packet
+    // in an interrupt,
+    // it may break the kb polling if it is in process,
+    // the following statement should fix that:
+    if (last_activated_mux && last_activated_mux != &muxes[2]) {
+        kb_activate_mux_adc_channel(last_activated_mux);
+    }
+}
+
+void kb_get_thresholds(uint8_t *buffer) {
+    if (!buffer) {
+        return;
+    }
+    memcpy(buffer, kb_state.key_thresholds, sizeof(kb_state.key_thresholds));
+}
+
+void kb_set_settings(kb_settings_t *new_settings) {
+    if (!new_settings) {
+        return;
+    }
+    memcpy(&kb_state.settings, new_settings, sizeof(kb_settings_t));
+    // TODO: Save to flash
+}
+
+void kb_set_mappings(uint8_t *new_mappings) {
+    if (!new_mappings) {
+        return;
+    }
+    memcpy(kb_state.mappings, new_mappings, sizeof(kb_state.mappings));
+    // TODO: Save to flash
+}
+
+void kb_set_thresholds(uint8_t *new_thresholds) {
+    if (!new_thresholds) {
+        return;
+    }
+    memcpy(kb_state.key_thresholds, new_thresholds,
+           sizeof(kb_state.key_thresholds));
+    // TODO: Save to flash
+}
+
+void kb_calibrate(uint16_t *min_thresholds, uint16_t *max_thresholds) {
+    if (!min_thresholds || !max_thresholds) {
+        return;
+    }
+    memcpy(kb_state.min_thresholds, min_thresholds,
+           sizeof(kb_state.min_thresholds));
+    memcpy(kb_state.max_thresholds, max_thresholds,
+           sizeof(kb_state.max_thresholds));
+    // TODO: Save to flash
+}
+
 void kb_poll_normal() {
 
     if (hid_buff[0] != KEY_NOKEY || hid_buff[2] != KEY_NOKEY) {
@@ -359,33 +428,27 @@ void kb_poll_normal() {
         pressed_amount = 0;
     }
 
+    uint8_t index = 0;
+
     for (uint8_t i = 0; i < 3; i++) {
 
         mux_t *mux = &muxes[i];
 
-        adc_channel_config_t channel_config;
-        channel_config.mode = ADC_CHANNEL_SINGLE_ENDED;
-        channel_config.rank = ADC_CHANNEL_RANK_1;
-        channel_config.offset_type = ADC_CHANNEL_OFFSET_NONE;
-        channel_config.offset = 0;
-        channel_config.channel = mux->common.adc_chan;
-        channel_config.sampling_time = kb_state.adc_sampling_time;
-        hal_err err = adc_config_channel(&channel_config);
-        if (err) {
-            LOG_CRITICAL("KB: Unable to config ADC channel: Error %d", err);
-            ERR_H(err);
-        }
+        kb_activate_mux_adc_channel(mux);
+        last_activated_mux = mux;
 
         for (uint8_t j = 0; j < mux->channel_amount; j++) {
-            if (kb_key_pressed_by_threshold(mux, j, NULL)) {
-                uint8_t key = kb_key_code_by_position(i, j);
-                LOG_DEBUG("KB: Key with HID code %d pressed. MUX%d, CH%d", key,
-                          i + 1, j);
+            if (kb_key_pressed_by_threshold(index, mux, j, NULL)) {
+                uint8_t key = kb_state.mappings[index];
+                LOG_DEBUG(
+                    "KB: NORMAL: Key with HID code %d pressed. MUX%d, CH%d",
+                    key, i + 1, j);
                 kb_process_key(key);
                 if (pressed_amount >= HID_BUFFER_SIZE - 2) {
                     return;
                 }
             }
+            index++;
         }
     }
 
@@ -395,7 +458,32 @@ void kb_poll_normal() {
 }
 
 void kb_poll_race() {
-    // TODO
+    uint8_t index = 0;
+    uint16_t highest_value = 0;
+    uint8_t pressed_key = KEY_NOKEY;
+
+    for (uint8_t i = 0; i < 3; i++) {
+        mux_t *mux = &muxes[i];
+
+        kb_activate_mux_adc_channel(mux);
+        last_activated_mux = mux;
+
+        for (uint8_t j = 0; j < mux->channel_amount; j++) {
+            uint16_t value;
+            if (kb_key_pressed_by_threshold(index, mux, j, &value)) {
+                uint8_t key = kb_state.mappings[index];
+                LOG_DEBUG("KB: RACE: Key with HID code %d pressed. MUX%d, CH%d",
+                          key, i + 1, j);
+                if (highest_value < value) {
+                    highest_value = value;
+                    pressed_key = key;
+                }
+            }
+        }
+    }
+    if (pressed_key != KEY_NOKEY) {
+        kb_process_key(pressed_key);
+    }
 }
 
 extern USBD_HandleTypeDef hUsbDeviceFS;
@@ -408,7 +496,7 @@ void kb_handle(bool blocking) {
     while (kb_state.lock) {
     }
 
-    switch (kb_state.mode) {
+    switch (kb_state.settings.mode) {
 
     case KB_MODE_NORMAL:
         kb_poll_normal();

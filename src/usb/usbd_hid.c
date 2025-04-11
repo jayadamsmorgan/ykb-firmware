@@ -1,6 +1,7 @@
 #include "usb/usbd_hid.h"
 
 #include "hal/systick.h"
+#include "interface_handler.h"
 #include "logging.h"
 #include "usb/usbd_conf.h"
 #include "usb/usbd_core.h"
@@ -524,7 +525,7 @@ static uint8_t USBD_HID_DataIn(USBD_HandleTypeDef *pdev, uint8_t epnum) {
 static uint8_t USBD_HID_DataOut(USBD_HandleTypeDef *pdev, uint8_t epnum) {
 
     if (epnum == (VEND_HID_EPOUT_ADDR & 0x7F)) {
-        /* vendRxBuf now holds the OUT report – process it here          */
+        interface_handle_new_packet(vendRxBuf, 63);
         USBD_LL_PrepareReceive(pdev, VEND_HID_EPOUT_ADDR, vendRxBuf,
                                VEND_HID_EPSIZE);
     }
