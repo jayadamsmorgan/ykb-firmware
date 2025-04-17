@@ -36,7 +36,4 @@ void DebugMon_Handler(void) { LOG_TRACE("CORE: DebugMon Handler triggered."); }
 
 void PendSV_Handler(void) { LOG_TRACE("CORE: PendSV Handler triggered"); }
 
-void USB_LP_IRQHandler(void) {
-    LOG_TRACE("USB: IRQ Handler triggered.");
-    HAL_PCD_IRQHandler(&hpcd_USB_FS);
-}
+void USB_LP_IRQHandler(void) { HAL_PCD_IRQHandler(&hpcd_USB_FS); }

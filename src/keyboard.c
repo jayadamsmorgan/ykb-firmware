@@ -1,11 +1,17 @@
 #include "keyboard.h"
 
 #include "error_handler.h"
+#include "hal/systick.h"
+#include "interface_handler.h"
 #include "logging.h"
 #include "mux.h"
 #include "pinout.h"
+#include "settings.h"
 #include "usb/usbd_hid.h"
+#include "ykb_protocol.h"
 #include <stdint.h>
+#include <stdio.h>
+#include <string.h>
 
 //
 // KB
@@ -15,6 +21,7 @@ static kb_state_t kb_state = {
         {
             .mode = KB_MODE_NORMAL,
             .adc_sampling_time = KB_ADC_SAMPLING_DEFAULT,
+            .key_polling_rate = KB_DEFAULT_POLLING_RATE,
         },
 };
 
@@ -143,7 +150,8 @@ static inline bool kb_key_pressed_by_threshold(uint8_t key_index, mux_t *mux,
         return false;
     }
 
-    uint16_t percentage = tmp_value / range * 100;
+    float percentage =
+        (float)(tmp_value - kb_state.min_thresholds[key_index]) / range * 100;
     return percentage >= kb_state.key_thresholds[key_index];
 }
 
@@ -194,6 +202,8 @@ static inline void kb_init_thresholds() {
     for (uint8_t i = 0; i < 3; i++) {
         mux_t *mux = &muxes[i];
 
+        kb_activate_mux_adc_channel(mux);
+
         for (uint8_t j = 0; j < mux->channel_amount; j++) {
             kb_key_pressed_by_threshold(index, mux, j,
                                         &kb_state.min_thresholds[index]);
@@ -201,8 +211,9 @@ static inline void kb_init_thresholds() {
         }
     }
 
-    memset(kb_state.max_thresholds, KB_KEY_MAX_VALUE_THRESHOLD_DEFAULT,
-           sizeof(kb_state.max_thresholds));
+    for (uint8_t i = 0; i < KB_KEY_COUNT; i++) {
+        kb_state.max_thresholds[i] = KB_KEY_MAX_VALUE_THRESHOLD_DEFAULT;
+    }
 
     memset(kb_state.key_thresholds, KB_KEY_THRESHOLD_DEFAULT,
            sizeof(kb_state.key_thresholds));
@@ -233,46 +244,11 @@ hal_err kb_init() {
         return err;
     }
 
+    memset(kb_state.current_values, 0, sizeof(kb_state.current_values));
+
     LOG_INFO("KB: Setup complete.");
 
     return OK;
-}
-
-error_t kb_get_mode(kb_mode *const mode, bool blocking) {
-
-    if (blocking) {
-        while (kb_state.lock) {
-        }
-    } else if (kb_state.lock) {
-        return -1;
-    }
-    if (!mode) {
-        return -2;
-    }
-
-    kb_state.lock = true;
-    *mode = kb_state.settings.mode;
-    kb_state.lock = false;
-
-    return 0;
-}
-
-error_t kb_set_mode(kb_mode new_mode, bool blocking) {
-
-    if (blocking) {
-        while (kb_state.lock) {
-        }
-    } else if (kb_state.lock) {
-        return -1;
-    }
-
-    kb_state.lock = true;
-    kb_state.settings.mode = new_mode;
-    kb_state.lock = false;
-
-    LOG_DEBUG("KB: New mode set: %d.", new_mode);
-
-    return 0;
 }
 
 static uint8_t hid_buff[HID_BUFFER_SIZE];
@@ -346,43 +322,36 @@ void kb_get_mappings(uint8_t *buffer) {
     memcpy(buffer, kb_state.mappings, sizeof(kb_state.mappings));
 }
 
-void kb_get_values(uint8_t *buffer) {
+static ykb_protocol_t values_request;
+static ykb_protocol_t *values_request_ptr;
 
-    if (!buffer) {
-        return;
-    }
-
-    uint16_t values[KB_KEY_COUNT];
-
-    uint8_t index = 0;
-    for (uint8_t i = 0; i < 3; i++) {
-        mux_t *mux = &muxes[i];
-
-        kb_activate_mux_adc_channel(mux);
-        for (uint8_t j = 0; j < mux->channel_amount; j++) {
-            uint16_t value;
-            kb_key_pressed_by_threshold(index, mux, j, &value);
-            values[index] = value;
-            index++;
-        }
-    }
-
-    memcpy(buffer, values, sizeof(values));
-
-    // If this function is triggered by an incoming USB packet
-    // in an interrupt,
-    // it may break the kb polling if it is in process,
-    // the following statement should fix that:
-    if (last_activated_mux && last_activated_mux != &muxes[2]) {
-        kb_activate_mux_adc_channel(last_activated_mux);
-    }
+void kb_request_values(ykb_protocol_t *protocol) {
+    memcpy(&values_request, protocol, sizeof(ykb_protocol_t));
+    values_request_ptr = &values_request;
 }
 
 void kb_get_thresholds(uint8_t *buffer) {
     if (!buffer) {
         return;
     }
+    for (uint8_t i = 0; i < 35; i++) {
+        printf("%d ", kb_state.key_thresholds[i]);
+    }
+    printf("\r\n");
+    for (uint8_t i = 0; i < 35; i++) {
+        printf("%d ", kb_state.min_thresholds[i]);
+    }
+    printf("\r\n");
+    for (uint8_t i = 0; i < 35; i++) {
+        printf("%d ", kb_state.max_thresholds[i]);
+    }
+    printf("\r\n");
     memcpy(buffer, kb_state.key_thresholds, sizeof(kb_state.key_thresholds));
+    memcpy(&buffer[sizeof(kb_state.key_thresholds)], kb_state.min_thresholds,
+           sizeof(kb_state.min_thresholds));
+    memcpy(&buffer[sizeof(kb_state.key_thresholds) +
+                   sizeof(kb_state.min_thresholds)],
+           kb_state.max_thresholds, sizeof(kb_state.max_thresholds));
 }
 
 void kb_set_settings(kb_settings_t *new_settings) {
@@ -438,7 +407,8 @@ void kb_poll_normal() {
         last_activated_mux = mux;
 
         for (uint8_t j = 0; j < mux->channel_amount; j++) {
-            if (kb_key_pressed_by_threshold(index, mux, j, NULL)) {
+            if (kb_key_pressed_by_threshold(index, mux, j,
+                                            &kb_state.current_values[index])) {
                 uint8_t key = kb_state.mappings[index];
                 LOG_DEBUG(
                     "KB: NORMAL: Key with HID code %d pressed. MUX%d, CH%d",
@@ -469,11 +439,12 @@ void kb_poll_race() {
         last_activated_mux = mux;
 
         for (uint8_t j = 0; j < mux->channel_amount; j++) {
-            uint16_t value;
-            if (kb_key_pressed_by_threshold(index, mux, j, &value)) {
+            if (kb_key_pressed_by_threshold(index, mux, j,
+                                            &kb_state.current_values[index])) {
                 uint8_t key = kb_state.mappings[index];
                 LOG_DEBUG("KB: RACE: Key with HID code %d pressed. MUX%d, CH%d",
                           key, i + 1, j);
+                uint16_t value = kb_state.current_values[index];
                 if (highest_value < value) {
                     highest_value = value;
                     pressed_key = key;
@@ -488,23 +459,28 @@ void kb_poll_race() {
 
 extern USBD_HandleTypeDef hUsbDeviceFS;
 
-void kb_handle(bool blocking) {
+static uint32_t previous_poll_time = 0;
 
-    if (!blocking && kb_state.lock) {
-        return;
+void kb_handle() {
+
+    if (systick_get_tick() - previous_poll_time >= KB_DEFAULT_POLLING_RATE) {
+
+        switch (kb_state.settings.mode) {
+
+        case KB_MODE_NORMAL:
+            kb_poll_normal();
+            break;
+
+        case KB_MODE_RACE:
+            kb_poll_race();
+            break;
+        }
     }
-    while (kb_state.lock) {
-    }
 
-    switch (kb_state.settings.mode) {
-
-    case KB_MODE_NORMAL:
-        kb_poll_normal();
-        break;
-
-    case KB_MODE_RACE:
-        kb_poll_race();
-        break;
+    if (values_request_ptr) {
+        interface_handle_get_values_response(values_request_ptr,
+                                             kb_state.current_values);
+        values_request_ptr = NULL;
     }
 
     USBD_HID_SendReport(&hUsbDeviceFS, HID_EPIN_ADDR, hid_buff,

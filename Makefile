@@ -72,6 +72,8 @@ INCLUDES = -I$(INC_DIR) \
            -I$(CMSIS_DEVICE_INC_DIR) \
 		   -I$(YKB_INC_DIR)
 
+HEADERS += $(YKB_INC_DIR)/ykb_protocol.h
+
 COMMON_FLAGS = -Wall -Wextra -Werror \
                -fdata-sections -ffunction-sections \
                -std=gnu2x \

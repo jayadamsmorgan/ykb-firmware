@@ -6,17 +6,10 @@
 #include "mappings.h"
 #include "settings.h"
 #include "utils/utils.h"
+#include "ykb_protocol.h"
 #include <stdint.h>
 
 // TYPES
-
-// Default mode: default behavior of keyboard.
-//
-// Race mode: only the key which is pressed the most is activated.
-typedef enum {
-    KB_MODE_NORMAL = 0U,
-    KB_MODE_RACE = 1U,
-} kb_mode;
 
 #ifdef __GNUC__
 #define PACKED __attribute__((__packed__))
@@ -28,6 +21,14 @@ typedef enum {
 #warning                                                                       \
     "Packed attribute not defined for this compiler, struct padding might occur"
 #endif
+
+// Default mode: default behavior of keyboard.
+//
+// Race mode: only the key which is pressed the most is activated.
+typedef enum PACKED {
+    KB_MODE_NORMAL = 0U,
+    KB_MODE_RACE = 1U,
+} kb_mode;
 
 typedef struct PACKED {
 
@@ -43,8 +44,6 @@ typedef struct PACKED {
 
 typedef struct {
 
-    bool lock;
-
     kb_settings_t settings;
 
     uint8_t key_thresholds[KB_KEY_COUNT];
@@ -54,6 +53,8 @@ typedef struct {
 
     uint8_t mappings[KB_KEY_COUNT];
 
+    uint16_t current_values[KB_KEY_COUNT];
+
 } kb_state_t;
 
 // FUNCTIONS
@@ -62,7 +63,7 @@ hal_err kb_init();
 
 void kb_get_settings(uint8_t *buffer);
 void kb_get_mappings(uint8_t *buffer);
-void kb_get_values(uint8_t *buffer);
+void kb_request_values(ykb_protocol_t *protocol);
 void kb_get_thresholds(uint8_t *buffer);
 
 void kb_set_settings(kb_settings_t *new_settings);
@@ -71,6 +72,6 @@ void kb_set_thresholds(uint8_t *new_thresholds);
 
 void kb_calibrate(uint16_t *min_thresholds, uint16_t *max_thresholds);
 
-void kb_handle(bool blocking);
+void kb_handle();
 
 #endif // KEYBOARD_H

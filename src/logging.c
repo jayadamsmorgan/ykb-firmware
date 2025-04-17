@@ -1,6 +1,6 @@
-#if defined(DEBUG) && defined(HAL_LPUART_ENABLED)
-
 #include "logging.h"
+
+#if defined(DEBUG) && defined(HAL_LPUART_ENABLED)
 
 #include "config/pinout.h"
 #include "hal/uart.h"
