@@ -11,7 +11,6 @@
 #include "ykb_protocol.h"
 
 #include <stdint.h>
-#include <stdio.h>
 #include <string.h>
 #include <sys/types.h>
 
@@ -38,10 +37,6 @@ static void interface_send_reply(ykb_protocol_t *packet, uint8_t *data,
            &data[packet->packet_number * YKB_PROTOCOL_DATA_LENGTH], size);
 
     LOG_INFO("Packet number: %d", packet->packet_number);
-    for (uint8_t i = 0; i < size; i++) {
-        printf("%d ", packet->data[i]);
-    }
-    printf("\r\n");
 
     packet->crc = ykb_crc16(packet->data, size);
     packet->packet_size = size;
