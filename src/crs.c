@@ -6,7 +6,7 @@
 
 hal_err setup_crs() {
 
-    LOG_DEBUG("CRS: Setting up...");
+    LOG_DEBUG("Setting up...");
 
     crs_enable();
     ASSERT(crs_enabled());
@@ -28,10 +28,10 @@ hal_err setup_crs() {
 
     hal_err err = crs_set_smooth_trimming(CRS_SMOOTH_TRIM_DEFAULT);
     if (err) {
-        LOG_CRITICAL("CRS: Smooth trimming error %d.", err);
+        LOG_CRITICAL("Smooth trimming error %d.", err);
         return err;
     }
-    LOG_TRACE("CRS: Smooth trimming enabled.");
+    LOG_TRACE("Smooth trimming enabled.");
 
     crs_auto_trimming_enable();
     ASSERT(crs_auto_trimming_enabled());
@@ -39,7 +39,7 @@ hal_err setup_crs() {
     crs_frequency_error_counter_enable();
     ASSERT(crs_frequency_error_counter_enabled());
 
-    LOG_INFO("CRS: Setup complete.");
+    LOG_INFO("Setup complete.");
 
     return OK;
 }

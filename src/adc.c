@@ -6,9 +6,9 @@ hal_err setup_adc() {
 
     hal_err err;
 
-    LOG_INFO("ADC: Setting up...");
+    LOG_INFO("Setting up...");
 
-    LOG_TRACE("ADC: Starting init...");
+    LOG_TRACE("Starting init...");
     adc_init_t init;
     init.clock_mode = ADC_CLOCK_MODE_HCLK_DIV4;
     init.clock_prescaler = ADC_CLOCK_PRESCALER_DIV1;
@@ -25,23 +25,23 @@ hal_err setup_adc() {
     init.dma_mode = ADC_DMA_DISABLE;
     init.overrun_mode = ADC_OVERRUN_DATA_OVERWRITTEN;
     init.oversampling_mode = ADC_OVERSAMPLING_DISABLED;
-    LOG_TRACE("ADC: Setting up callbacks...");
+    LOG_TRACE("Setting up callbacks...");
     err = adc_init(&init);
     if (err) {
-        LOG_CRITICAL("ADC: Unable to init: Error %d", err);
+        LOG_CRITICAL("Unable to init: Error %d", err);
         return err;
     }
-    LOG_TRACE("ADC: Init OK.");
+    LOG_TRACE("Init OK.");
 
-    LOG_TRACE("ADC: Starting calibration...");
+    LOG_TRACE("Starting calibration...");
     err = adc_start_calibration(ADC_CHANNEL_SINGLE_ENDED);
     if (err) {
-        LOG_CRITICAL("ADC: Unable to calibrate: Error %d", err);
+        LOG_CRITICAL("Unable to calibrate: Error %d", err);
         return err;
     }
-    LOG_TRACE("ADC: Calibration complete.");
+    LOG_TRACE("Calibration complete.");
 
-    LOG_INFO("ADC: Setup complete.");
+    LOG_INFO("Setup complete.");
 
     return OK;
 }

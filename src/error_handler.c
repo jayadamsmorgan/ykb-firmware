@@ -9,12 +9,12 @@ static const gpio_pin_t led_dbg = PIN_LED_DBG1;
 
 void setup_error_handler() {
 
-    LOG_INFO("ERROR_HANDLER: Setting up...");
+    LOG_INFO("Setting up...");
 
     gpio_turn_on_port(led_dbg.gpio);
     gpio_set_mode(led_dbg, GPIO_MODE_OUTPUT);
 
-    LOG_INFO("ERROR_HANDLER: Setup complete.");
+    LOG_INFO("Setup complete.");
 }
 
 void error_handler(hal_err error_code) {

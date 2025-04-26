@@ -4,7 +4,6 @@
 #include "hal/hal_err.h"
 #include <stdbool.h>
 #include <stdint.h>
-#include <stdio.h>
 
 #ifndef __NO_ASSERT
 
@@ -41,7 +40,7 @@
 
 #ifdef DEBUG
 
-#define LOG(LEVEL, ARGS...) _log(LEVEL, ARGS)
+#define LOG(LEVEL, ARGS...) _log(LEVEL, __FILE__, __LINE__, ARGS)
 
 typedef enum {
     LOG_LEVEL_TRACE = 0U,
@@ -51,7 +50,8 @@ typedef enum {
     LOG_LEVEL_CRITICAL = 4U,
 } log_level;
 
-void _log(log_level level, const char *format, ...);
+void _log(log_level level, const char *file_name, const int line,
+          const char *format, ...);
 
 hal_err setup_logging();
 

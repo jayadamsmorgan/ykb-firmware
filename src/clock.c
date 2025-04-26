@@ -7,11 +7,11 @@
 // Use HSE and the PLL to get a 64MHz SYSCLK
 inline hal_err setup_clock() {
 
-    LOG_DEBUG("CLOCK: Setting up...");
+    LOG_DEBUG("Setting up...");
 
     // Enable the 32MHz external oscillator
     clock_hse_enable();
-    LOG_TRACE("CLOCK: HSE enabled.");
+    LOG_TRACE("HSE enabled.");
 
     // VCO input is 8MHz -> PLLM = 32000000 / 8000000 = 4
     // 24*8MHz = 192MHz -> PLLN = 24
@@ -34,7 +34,7 @@ inline hal_err setup_clock() {
 
     // Enable the PLL
     clock_pll_enable();
-    LOG_TRACE("CLOCK: PLL enabled.");
+    LOG_TRACE("PLL enabled.");
 
     // Set divider for HCLK2 to 2 so f_HCLK2 = 32MHz
     clock_hclk2_set_prescaler(CLOCK_HCLK2_PRESC_DIV_2);
@@ -46,7 +46,7 @@ inline hal_err setup_clock() {
 
     // Select SYSCLK source
     clock_select_source(CLOCK_SOURCE_PLL);
-    LOG_TRACE("CLOCK: System clock source is PLL.");
+    LOG_TRACE("System clock source is PLL.");
 
     // Select PLLQ as 48MHz source for USB and RNG
     clock_usb_rng_select_source(CLOCK_USB_RNG_SOURCE_PLLQ);
@@ -56,7 +56,7 @@ inline hal_err setup_clock() {
     SystemCoreClockUpdate();
     ASSERT(SystemCoreClock == 64000000);
 
-    LOG_INFO("CLOCK: Setup complete.");
+    LOG_INFO("Setup complete.");
 
     return OK;
 }

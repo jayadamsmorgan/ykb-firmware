@@ -6,7 +6,9 @@
 #include "hal/uart.h"
 #include "settings.h"
 #include "utils/utils.h"
+
 #include <stdarg.h>
+#include <stdio.h>
 #include <string.h>
 
 #define LOG_STR_MAX_LEN 64
@@ -23,7 +25,8 @@ static bool logging_set_up = false;
 static string_to_write log_str_queue[LOG_STR_QUEUE_LEN];
 static uint8_t log_str_queue_index = 0;
 
-void _log(log_level level, const char *format, ...) {
+void _log(log_level level, const char *file_name, const int line,
+          const char *format, ...) {
 
     if (level < __level) {
         return;
@@ -46,6 +49,8 @@ void _log(log_level level, const char *format, ...) {
         printf("CRITICAL: ");
         break;
     }
+
+    printf("(%s at %d): ", file_name, line);
 
     va_list args;
     va_start(args, format);

@@ -77,6 +77,7 @@ HEADERS += $(YKB_INC_DIR)/ykb_protocol.h
 COMMON_FLAGS = -Wall -Wextra -Werror \
                -fdata-sections -ffunction-sections \
                -std=gnu2x \
+			   -fmacro-prefix-map=$(abspath .)=. \
                -mlittle-endian -mthumb -mthumb-interwork \
                -mfloat-abi=hard -mfpu=fpv4-sp-d16 -mcpu=$(MCU) -D$(BOARD) \
                $(INCLUDES)
