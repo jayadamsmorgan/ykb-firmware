@@ -13,9 +13,6 @@
 
 #ifdef __GNUC__
 #define PACKED __attribute__((__packed__))
-#elif defined(_MSC_VER)
-#define PACKED
-#pragma pack(push, 1) // For MSVC
 #else
 #define PACKED
 #warning                                                                       \
@@ -37,10 +34,6 @@ typedef struct PACKED {
     kb_mode mode;
 
 } kb_settings_t;
-
-#ifdef _MSC_VER
-#pragma pack(pop) // Restore packing for MSVC
-#endif
 
 typedef struct {
 

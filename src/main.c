@@ -8,6 +8,7 @@
 #include "clock.h"
 #include "crs.h"
 #include "error_handler.h"
+#include "fw_update_handler.h"
 #include "keyboard.h"
 #include "usb.h"
 
@@ -17,12 +18,12 @@ int main(void) {
     LOG_INFO("Start booting YarmanKB Dactyl firmware "
              "version " YARMANKB_DACTYL_FW_VERSION);
     system_init();
-    LOG_TRACE("CORE: System init OK.");
+    LOG_TRACE("System init OK.");
     setup_error_handler();
     ERR_H(setup_clock());
     ERR_H(setup_crs());
     ERR_H(hal_init());
-    LOG_TRACE("CORE: HAL init OK.");
+    LOG_TRACE("HAL init OK.");
     ERR_H(setup_logging());
 
     // Misc
@@ -33,9 +34,10 @@ int main(void) {
     ERR_H(kb_init());
     ERR_H(setup_usb());
 
-    LOG_INFO("MAIN: Successfully booted.");
+    LOG_INFO("Successfully booted.");
 
     while (true) { // Main loop
-        kb_handle(true);
+        kb_handle();
+        fw_update_handler();
     }
 }

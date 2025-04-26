@@ -1,6 +1,8 @@
 #include "keyboard.h"
 
+#include "eeprom.h"
 #include "error_handler.h"
+#include "hal/hal.h"
 #include "hal/systick.h"
 #include "interface_handler.h"
 #include "logging.h"
@@ -9,8 +11,8 @@
 #include "settings.h"
 #include "usb/usbd_hid.h"
 #include "ykb_protocol.h"
+
 #include <stdint.h>
-#include <stdio.h>
 #include <string.h>
 
 //
@@ -108,6 +110,69 @@ static mux_t muxes[3] = {
     },                                    //
 };
 
+typedef struct PACKED {
+
+    kb_state_t state;
+
+    uint16_t crc16;
+
+} kb_eeprom_t;
+
+#define EEPROM_KB_STATE_ADDR EEPROM_START_PAGE
+
+static inline void kb_save_to_eeprom() {
+
+    hal_err err;
+
+    kb_eeprom_t to_save = {
+        .state = kb_state,
+        .crc16 = ykb_crc16((uint8_t *)&kb_state, sizeof(kb_state_t))};
+
+    err = eeprom_clear();
+    if (err) {
+        LOG_ERROR("Unable to clear EEPROM: %d", err);
+        return;
+    }
+    LOG_TRACE("EEPROM cleared.");
+
+    err = eeprom_save(EEPROM_KB_STATE_ADDR, &to_save, sizeof(to_save));
+    if (err) {
+        LOG_ERROR("Unable to save to EEPROM: %d", err);
+        return;
+    }
+
+    LOG_DEBUG("Successfully saved to EEPROM.");
+}
+
+static inline bool kb_load_state_from_eeprom() {
+
+    hal_err err;
+
+    kb_eeprom_t to_get = {0};
+
+    LOG_TRACE("Loading state from EEPROM...");
+    err = eeprom_get(EEPROM_KB_STATE_ADDR, &to_get, sizeof(to_get));
+    if (err) {
+        LOG_ERROR("Unable to get from EEPROM: %d", err);
+        return false;
+    }
+    LOG_TRACE("Loaded state from EEPROM.");
+
+    uint16_t crc16 = ykb_crc16((uint8_t *)&to_get.state, sizeof(kb_state_t));
+    if (crc16 != to_get.crc16) {
+        LOG_DEBUG("Wrong CRC16 EEPROM signature (%d != %d), aborting", crc16,
+                  to_get.crc16);
+        return false;
+    }
+    LOG_TRACE("EEPROM CRC16 is correct.");
+
+    memcpy(&kb_state, &to_get.state, sizeof(kb_state_t));
+
+    LOG_DEBUG("Successfully retreived kb_state from EEPROM.");
+
+    return true;
+}
+
 static inline void kb_activate_mux_adc_channel(mux_t *mux) {
     adc_channel_config_t channel_config;
     channel_config.mode = ADC_CHANNEL_SINGLE_ENDED;
@@ -118,7 +183,7 @@ static inline void kb_activate_mux_adc_channel(mux_t *mux) {
     channel_config.sampling_time = kb_state.settings.adc_sampling_time;
     hal_err err = adc_config_channel(&channel_config);
     if (err) {
-        LOG_CRITICAL("KB: Unable to config ADC channel: Error %d", err);
+        LOG_CRITICAL("Unable to config ADC channel: Error %d", err);
         ERR_H(err);
     }
 }
@@ -130,7 +195,7 @@ static inline bool kb_key_pressed_by_threshold(uint8_t key_index, mux_t *mux,
 
     hal_err err = adc_start();
     if (err) {
-        LOG_CRITICAL("KB: ADC read error %d", err);
+        LOG_CRITICAL("ADC read error %d", err);
         ERR_H(err);
     }
 
@@ -162,40 +227,37 @@ static hal_err kb_init_muxes() {
     for (uint8_t i = 0; i < 3; i++) {
         mux_t mux = muxes[i];
 
-        LOG_TRACE("KB: Initializing MUX%d...", i + 1);
+        LOG_TRACE("Initializing MUX%d...", i + 1);
         err = mux_init(&mux);
         if (err) {
-            LOG_CRITICAL("KB: Error initializing MUX%d: %d", i + 1, err);
+            LOG_CRITICAL("Error initializing MUX%d: %d", i + 1, err);
             return err;
         }
-        LOG_TRACE("KB: MUX%d init OK.", i + 1);
+        LOG_TRACE("MUX%d init OK.", i + 1);
 
         gpio_turn_on_port(mux.common.gpio);
         gpio_set_mode(mux.common, GPIO_MODE_ANALOG);
 
-        LOG_TRACE("KB: MUX%d initialized.", i + 1);
+        LOG_TRACE("MUX%d initialized.", i + 1);
 
-        LOG_TRACE("KB: Setting up ADC for MUX%d...", i + 1);
+        LOG_TRACE("Setting up ADC for MUX%d...", i + 1);
 
         if (mux.common.adc_chan == ADC_CHANNEL_NONE) {
             // The selected common pin does not have an ADC channel
-            LOG_CRITICAL(
-                "KB: Common pin for MUX%d does not have an ADC channel.",
-                i + 1);
+            LOG_CRITICAL("Common pin for MUX%d does not have an ADC channel.",
+                         i + 1);
             return ERR_KB_COMMON_NO_ADC_CHAN;
         }
 
-        LOG_TRACE("KB: ADC for MUX%d initialized.", i + 1);
+        LOG_TRACE("ADC for MUX%d initialized.", i + 1);
 
-        LOG_INFO("KB: MUX%d setup complete.", i + 1);
+        LOG_INFO("MUX%d setup complete.", i + 1);
     }
 
     return OK;
 }
 
-static inline void kb_init_thresholds() {
-
-    // TODO: Load from flash if saved
+static inline void kb_init_default() {
 
     uint8_t index = 0;
 
@@ -217,36 +279,41 @@ static inline void kb_init_thresholds() {
 
     memset(kb_state.key_thresholds, KB_KEY_THRESHOLD_DEFAULT,
            sizeof(kb_state.key_thresholds));
-}
 
-static inline hal_err kb_load_mappings() {
-    LOG_INFO("KB: Loading mappings...");
-    // TODO: Load from flash if saved
     memcpy(kb_state.mappings, mappings, sizeof(mappings));
-    LOG_INFO("KB: Mappings loaded.");
-    return OK;
 }
 
 hal_err kb_init() {
 
-    LOG_INFO("KB: Initializing...");
+    LOG_INFO("Initializing...");
 
     hal_err err;
+
+    LOG_TRACE("Initializing MUXes...");
     err = kb_init_muxes();
     if (err) {
+        LOG_ERROR("Unable to init muxes. Error %d", err);
         return err;
     }
+    LOG_TRACE("MUXes init OK.");
 
-    kb_init_thresholds();
-
-    err = kb_load_mappings();
+    LOG_TRACE("Initializing EEPROM...");
+    err = eeprom_init();
     if (err) {
+        LOG_ERROR("Unable to init EEPROM. Error: %d", err);
         return err;
+    }
+    LOG_TRACE("EEPROM initialized.");
+
+    if (!kb_load_state_from_eeprom()) {
+        LOG_DEBUG("Failed to load state from EEPROM. Loading defaults...");
+        kb_init_default();
+        LOG_DEBUG("Loaded default state.");
     }
 
     memset(kb_state.current_values, 0, sizeof(kb_state.current_values));
 
-    LOG_INFO("KB: Setup complete.");
+    LOG_INFO("Setup complete.");
 
     return OK;
 }
@@ -334,18 +401,6 @@ void kb_get_thresholds(uint8_t *buffer) {
     if (!buffer) {
         return;
     }
-    for (uint8_t i = 0; i < 35; i++) {
-        printf("%d ", kb_state.key_thresholds[i]);
-    }
-    printf("\r\n");
-    for (uint8_t i = 0; i < 35; i++) {
-        printf("%d ", kb_state.min_thresholds[i]);
-    }
-    printf("\r\n");
-    for (uint8_t i = 0; i < 35; i++) {
-        printf("%d ", kb_state.max_thresholds[i]);
-    }
-    printf("\r\n");
     memcpy(buffer, kb_state.key_thresholds, sizeof(kb_state.key_thresholds));
     memcpy(&buffer[sizeof(kb_state.key_thresholds)], kb_state.min_thresholds,
            sizeof(kb_state.min_thresholds));
@@ -359,7 +414,7 @@ void kb_set_settings(kb_settings_t *new_settings) {
         return;
     }
     memcpy(&kb_state.settings, new_settings, sizeof(kb_settings_t));
-    // TODO: Save to flash
+    kb_save_to_eeprom();
 }
 
 void kb_set_mappings(uint8_t *new_mappings) {
@@ -367,7 +422,7 @@ void kb_set_mappings(uint8_t *new_mappings) {
         return;
     }
     memcpy(kb_state.mappings, new_mappings, sizeof(kb_state.mappings));
-    // TODO: Save to flash
+    kb_save_to_eeprom();
 }
 
 void kb_set_thresholds(uint8_t *new_thresholds) {
@@ -376,7 +431,7 @@ void kb_set_thresholds(uint8_t *new_thresholds) {
     }
     memcpy(kb_state.key_thresholds, new_thresholds,
            sizeof(kb_state.key_thresholds));
-    // TODO: Save to flash
+    kb_save_to_eeprom();
 }
 
 void kb_calibrate(uint16_t *min_thresholds, uint16_t *max_thresholds) {
@@ -387,8 +442,14 @@ void kb_calibrate(uint16_t *min_thresholds, uint16_t *max_thresholds) {
            sizeof(kb_state.min_thresholds));
     memcpy(kb_state.max_thresholds, max_thresholds,
            sizeof(kb_state.max_thresholds));
-    // TODO: Save to flash
+    kb_save_to_eeprom();
 }
+
+#ifdef DEBUG
+
+bool previously_pressed_keys[KB_KEY_COUNT] = {false};
+
+#endif // DEBUG
 
 void kb_poll_normal() {
 
@@ -410,14 +471,24 @@ void kb_poll_normal() {
             if (kb_key_pressed_by_threshold(index, mux, j,
                                             &kb_state.current_values[index])) {
                 uint8_t key = kb_state.mappings[index];
-                LOG_DEBUG(
-                    "KB: NORMAL: Key with HID code %d pressed. MUX%d, CH%d",
-                    key, i + 1, j);
+#ifdef DEBUG
+                if (!previously_pressed_keys[index]) {
+                    LOG_DEBUG(
+                        "Key with index %d (HID code %d) pressed. MUX%d, CH%d",
+                        index, key, i + 1, j);
+                    previously_pressed_keys[index] = true;
+                }
+#endif // DEBUG
                 kb_process_key(key);
                 if (pressed_amount >= HID_BUFFER_SIZE - 2) {
                     return;
                 }
             }
+#ifdef DEBUG
+            else {
+                previously_pressed_keys[index] = false;
+            }
+#endif // DEBUG
             index++;
         }
     }
@@ -442,14 +513,25 @@ void kb_poll_race() {
             if (kb_key_pressed_by_threshold(index, mux, j,
                                             &kb_state.current_values[index])) {
                 uint8_t key = kb_state.mappings[index];
-                LOG_DEBUG("KB: RACE: Key with HID code %d pressed. MUX%d, CH%d",
-                          key, i + 1, j);
+#ifdef DEBUG
+                if (!previously_pressed_keys[index]) {
+                    LOG_DEBUG(
+                        "Key with index %d (HID code %d) pressed. MUX%d, CH%d",
+                        key, i + 1, j);
+                    previously_pressed_keys[index] = true;
+                }
+#endif // DEBUG
                 uint16_t value = kb_state.current_values[index];
                 if (highest_value < value) {
                     highest_value = value;
                     pressed_key = key;
                 }
             }
+#ifdef DEBUG
+            else {
+                previously_pressed_keys[index] = false;
+            }
+#endif // DEBUG
         }
     }
     if (pressed_key != KEY_NOKEY) {

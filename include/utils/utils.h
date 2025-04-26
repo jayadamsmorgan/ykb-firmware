@@ -10,6 +10,8 @@
 #define UNUSED(X) (void)(X)
 #endif // UNUSED
 
+#define __RAM_FUNC __attribute__((section(".RamFunc")))
+
 typedef enum {
     HAL_OK = 0x00,
     HAL_ERROR = 0x01,

@@ -8,35 +8,35 @@ extern USBD_DescriptorsTypeDef HID_Desc;
 
 hal_err setup_usb() {
 
-    LOG_INFO("USB: Setting up...");
+    LOG_INFO("Setting up...");
 
     hal_err err;
 
-    LOG_TRACE("USB: Starting init...");
+    LOG_TRACE("Starting init...");
     err = usb_device_init(&hUsbDeviceFS, &HID_Desc, DEVICE_FS);
     if (err) {
-        LOG_CRITICAL("USB: Unable to init: Error %d", err);
+        LOG_CRITICAL("Unable to init: Error %d", err);
         return err;
     }
-    LOG_TRACE("USB: Init OK.");
+    LOG_TRACE("Init OK.");
 
-    LOG_TRACE("USB: Registering HID device...");
+    LOG_TRACE("Registering HID device...");
     err = usb_device_register_class(&hUsbDeviceFS, &USBD_HID);
     if (err) {
-        LOG_CRITICAL("USB: Unable to register HID device: Error %d", err);
+        LOG_CRITICAL("Unable to register HID device: Error %d", err);
         return err;
     }
-    LOG_TRACE("USB: HID device registered.");
+    LOG_TRACE("HID device registered.");
 
-    LOG_TRACE("USB: Starting USB device...");
+    LOG_TRACE("Starting USB device...");
     err = usb_device_start(&hUsbDeviceFS);
     if (err) {
-        LOG_CRITICAL("USB: Unable to start USB device: Error %d", err);
+        LOG_CRITICAL("Unable to start USB device: Error %d", err);
         return err;
     }
-    LOG_TRACE("USB: USB device started.");
+    LOG_TRACE("USB device started.");
 
-    LOG_INFO("USB: Setup complete.");
+    LOG_INFO("Setup complete.");
 
     return OK;
 }

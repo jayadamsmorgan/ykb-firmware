@@ -1,5 +1,6 @@
 #include "interface_handler.h"
 
+#include "fw_update_handler.h"
 #include "hal/systick.h"
 #include "keyboard.h"
 #include "logging.h"
@@ -52,7 +53,7 @@ static void interface_send_reply(ykb_protocol_t *packet, uint8_t *data,
 
 static void handle_get_settings(ykb_protocol_t *packet) {
 
-    LOG_DEBUG("CORE: Packet handler: New get settings request.");
+    LOG_DEBUG("New get settings request.");
 
     uint8_t buff[sizeof(kb_settings_t)];
 
@@ -64,7 +65,7 @@ static void handle_get_settings(ykb_protocol_t *packet) {
 
 static void handle_get_mappings(ykb_protocol_t *packet) {
 
-    LOG_DEBUG("CORE: Packet handler: New get mappings request.");
+    LOG_DEBUG("New get mappings request.");
 
     uint8_t buff[KB_KEY_COUNT];
 
@@ -76,7 +77,7 @@ static void handle_get_mappings(ykb_protocol_t *packet) {
 
 static void handle_get_values(ykb_protocol_t *packet) {
 
-    LOG_DEBUG("CORE: Packet handler: New get values request.");
+    LOG_DEBUG("New get values request.");
 
     kb_request_values(packet);
 }
@@ -84,7 +85,7 @@ static void handle_get_values(ykb_protocol_t *packet) {
 void interface_handle_get_values_response(ykb_protocol_t *packet,
                                           uint16_t *values) {
 
-    LOG_DEBUG("CORE: Packet handler: Responding to get values request...");
+    LOG_DEBUG("Responding to get values request...");
 
     interface_send_reply(packet, (uint8_t *)values,
                          sizeof(uint16_t) * KB_KEY_COUNT);
@@ -92,7 +93,7 @@ void interface_handle_get_values_response(ykb_protocol_t *packet,
 
 static void handle_get_thresholds(ykb_protocol_t *packet) {
 
-    LOG_DEBUG("CORE: Packet handler: New get thresholds request.");
+    LOG_DEBUG("New get thresholds request.");
 
     uint8_t buff[sizeof(uint8_t) * KB_KEY_COUNT +
                  sizeof(uint16_t) * KB_KEY_COUNT * 2];
@@ -103,13 +104,101 @@ static void handle_get_thresholds(ykb_protocol_t *packet) {
     interface_send_reply(packet, buff, sizeof(buff));
 }
 
+static void handle_set_settings(ykb_protocol_t *packet) {
+
+    LOG_DEBUG("New set settings request.");
+
+    kb_settings_t new_settings = {0};
+    memcpy(&new_settings, packet->data, sizeof(kb_settings_t));
+    kb_set_settings(&new_settings);
+
+    // Send OK
+    interface_send_reply(packet, NULL, 0);
+}
+
+static void handle_set_mappings(ykb_protocol_t *packet) {
+
+    LOG_DEBUG("New set mappings request.");
+
+    uint8_t mappings[KB_KEY_COUNT] = {0};
+    memcpy(mappings, packet->data, sizeof(mappings));
+    kb_set_mappings(mappings);
+
+    // Send OK
+    interface_send_reply(packet, NULL, 0);
+}
+
+static uint8_t thresholds_buffer[KB_KEY_COUNT * sizeof(uint16_t) * 2 +
+                                 KB_KEY_COUNT * sizeof(uint8_t)];
+static uint8_t thresholds_buffer_length = 0U;
+
+static void thresholds_buffer_cleanup() {
+    memset(thresholds_buffer, 0, sizeof(thresholds_buffer));
+    thresholds_buffer_length = 0U;
+}
+
+static void handle_set_thresholds(ykb_protocol_t *packet) {
+
+    LOG_DEBUG("New set thresholds request.");
+
+    if (packet->packet_number == 0 && thresholds_buffer_length != 0) {
+        LOG_DEBUG("Clearing old set thresholds try...");
+        thresholds_buffer_cleanup();
+    }
+
+    if (thresholds_buffer_length + packet->packet_size >=
+        YKB_PROTOCOL_DATA_LENGTH) {
+        LOG_ERROR("Error setting thresholds: buffer overflow.");
+        thresholds_buffer_cleanup();
+        return;
+    }
+
+    memcpy(&thresholds_buffer[thresholds_buffer_length], packet->data,
+           packet->packet_size);
+
+    if (packet->packet_size < YKB_PROTOCOL_DATA_LENGTH) {
+        kb_set_thresholds(thresholds_buffer);
+        thresholds_buffer_cleanup();
+    }
+
+    interface_send_reply(packet, NULL, 0);
+}
+
+static void handle_firmware_update(ykb_protocol_t *packet) {
+    LOG_DEBUG("New firmware update packet.");
+
+    if (packet->packet_number == 0 &&
+        fw_get_update_source() == FW_UPDATE_SOURCE_USB) {
+        LOG_DEBUG("Clearing old firmware update try...");
+        fw_update_cleanup();
+    }
+
+    hal_err err = fw_update_new_chunk(packet->data, packet->packet_size,
+                                      FW_UPDATE_SOURCE_USB);
+    if (err) {
+        LOG_ERROR("FW update error: %d", err);
+        return;
+    }
+
+    if (packet->packet_size < YKB_PROTOCOL_DATA_LENGTH) {
+        fw_update_ready();
+    }
+
+    // Send OK
+    interface_send_reply(packet, NULL, 0);
+}
+
 typedef void (*fp)(ykb_protocol_t *packet);
 
 static fp request_fp_map[9] = {
-    handle_get_settings,   //
-    handle_get_mappings,   //
-    handle_get_values,     //
-    handle_get_thresholds, //
+    handle_get_settings,    //
+    handle_get_mappings,    //
+    handle_get_values,      //
+    handle_get_thresholds,  //
+    handle_set_settings,    //
+    handle_set_mappings,    //
+    handle_set_thresholds,  //
+    handle_firmware_update, //
 };
 
 void interface_handle_new_packet(uint8_t *packet, uint8_t packet_length) {
@@ -125,7 +214,7 @@ void interface_handle_new_packet(uint8_t *packet, uint8_t packet_length) {
         return;
     }
 
-    if (IS_YKB_GET_REQUEST(request)) {
+    if (IS_YKB_GET_REQUEST(request) || IS_YKB_SET_REQUEST(request)) {
         request_fp_map[(request >> 4) - 1](&result);
     }
 }
