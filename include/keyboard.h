@@ -3,9 +3,7 @@
 
 #include "hal/adc.h"
 #include "hal/hal_err.h"
-#include "mappings.h"
 #include "settings.h"
-#include "utils/utils.h"
 #include "ykb_protocol.h"
 #include <stdint.h>
 

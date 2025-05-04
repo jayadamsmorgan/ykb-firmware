@@ -1,10 +1,12 @@
 #ifndef UTILS_H
 #define UTILS_H
 
-#include "stm32wbxx.h"
 #include <stddef.h>
 #include <stdint.h>
 #include <stdlib.h>
+
+#define _STR(x) #x
+#define STR(x) _STR(x)
 
 #ifndef UNUSED
 #define UNUSED(X) (void)(X)

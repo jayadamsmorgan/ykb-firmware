@@ -3,7 +3,6 @@
 
 #include "hal/hal_err.h"
 #include <stdbool.h>
-#include <stdint.h>
 
 #ifndef __NO_ASSERT
 

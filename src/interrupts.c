@@ -1,4 +1,3 @@
-#include "hal/gpio.h"
 #include "hal/pcd.h"
 #include "logging.h"
 
@@ -8,6 +7,7 @@ void NMI_Handler(void) { LOG_TRACE("NMI_Handler."); }
 
 void HardFault_Handler(void) {
     LOG_CRITICAL("HARDFAULT.");
+    LOG_DEBUG("FLASH->SR: %d", FLASH->SR);
     while (1) {
     }
 }

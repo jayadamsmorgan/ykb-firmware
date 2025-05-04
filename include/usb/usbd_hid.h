@@ -1,7 +1,10 @@
 #ifndef __USB_HID_H
 #define __USB_HID_H
 
-#include "usbd_ioreq.h"
+#include <stdint.h>
+
+#include "cmsis_gcc.h"
+#include "usb/usbd_def.h"
 
 #ifndef HID_EPIN_ADDR
 #define HID_EPIN_ADDR 0x81U

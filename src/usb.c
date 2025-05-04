@@ -1,6 +1,7 @@
 #include "usb.h"
 
 #include "logging.h"
+#include "usb/usbd_core.h"
 #include "usb/usbd_hid.h"
 
 USBD_HandleTypeDef hUsbDeviceFS;

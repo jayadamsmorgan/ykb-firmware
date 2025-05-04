@@ -1,7 +1,6 @@
 #ifndef __USBD_IOREQ_H
 #define __USBD_IOREQ_H
 
-#include "usbd_core.h"
 #include "usbd_def.h"
 
 USBD_StatusTypeDef USBD_CtlSendData(USBD_HandleTypeDef *pdev, uint8_t *pbuf,

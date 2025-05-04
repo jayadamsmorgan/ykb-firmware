@@ -10,8 +10,6 @@
 
 typedef FlagStatus flag_status;
 
-static inline void system_init() { SystemInit(); }
-
 hal_err hal_init();
 
 #endif // HAL_H

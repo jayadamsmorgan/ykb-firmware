@@ -3,7 +3,6 @@
 #include "hal/bits.h"
 #include "hal/hal_err.h"
 #include "hal/systick.h"
-#include "logging.h"
 #include "stm32wbxx.h"
 #include "utils/utils.h"
 
@@ -15,6 +14,8 @@ static flash_state_t flash_state = {.address = 0U,
                                     .lock = false,
                                     .page = 0U,
                                     .procedure_ongoing = 0U};
+
+flash_state_t *flash_get_state() { return &flash_state; }
 
 void flash_select_latency(flash_latency latency) {
     MODIFY_BITS(FLASH->ACR, FLASH_ACR_LATENCY_Pos, latency, BITMASK_2BIT);
@@ -166,8 +167,6 @@ static void flash_program_doubleword(uint32_t address, uint64_t data) {
 
     /* Program second word */
     *(uint32_t *)(address + 4U) = (uint32_t)(data >> 32U);
-
-    LOG_DEBUG("Flashed doubleword at %d", address);
 }
 
 static __RAM_FUNC void flash_program_fast(uint32_t address,

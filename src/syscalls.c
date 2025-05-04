@@ -1,12 +1,8 @@
 #include "utils/utils.h"
 #include <errno.h>
-#include <signal.h>
-#include <stdio.h>
-#include <stdlib.h>
 #include <sys/stat.h>
 #include <sys/time.h>
 #include <sys/times.h>
-#include <time.h>
 
 extern int __io_putchar(int ch) __attribute__((weak));
 extern int __io_getchar(void) __attribute__((weak));

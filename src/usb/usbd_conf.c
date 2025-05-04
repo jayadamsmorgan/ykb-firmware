@@ -9,6 +9,7 @@
 #include "hal/pcd_ex.h"
 #include "hal/power.h"
 #include "hal/systick.h"
+#include "usb/usbd_core.h"
 #include "usb/usbd_hid.h"
 
 PCD_HandleTypeDef hpcd_USB_FS;

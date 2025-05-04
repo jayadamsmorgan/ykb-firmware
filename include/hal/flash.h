@@ -3,6 +3,7 @@
 
 #include "hal/hal_err.h"
 #include "stm32wbxx.h"
+#include "utils/utils.h"
 
 #include <stdbool.h>
 
@@ -402,6 +403,8 @@ flash_latency flash_get_latency();
 static inline uint32_t flash_get_page(uint32_t address) {
     return (address - FLASH_BASE) / FLASH_PAGE_SIZE;
 }
+
+flash_state_t *flash_get_state();
 
 hal_err flash_wait_for_last_operation(uint32_t timeout);
 

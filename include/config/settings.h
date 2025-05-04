@@ -93,7 +93,7 @@
 #ifdef DEBUG
 
 #ifndef LOG_LEVEL
-#define LOG_LEVEL LOG_LEVEL_DEBUG
+#define LOG_LEVEL LOG_LEVEL_INFO
 #endif // LOG_LEVEL
 
 #ifndef DBG_LONG_BLINK_DELAY
@@ -115,31 +115,6 @@
     (((a) > (b)) ? ((a) > (c) ? (a) : (c)) : ((b) > (c) ? (b) : (c)))
 #define MAX_CHANNELS_PER_MUX                                                   \
     MAX3(MUX1_KEY_COUNT, MUX2_KEY_COUNT, MUX3_KEY_COUNT)
-
-//
-// EEPROM:
-//
-
-// Make sure it doesn't overlap with the firmware.
-//
-// EEPROM_START_PAGE <= (Emulated EEPROM) < EEPROM_END_PAGE
-//
-// EEPROM_END_PAGE should be less than or equal to FLASH_PAGE_230
-// so that it doesn't use CPU2 Secure Memory.
-//
-// 8 pages * 4KB = 32KB EEPROM by default:
-
-#ifndef EEPROM_START_PAGE
-#define EEPROM_START_PAGE FLASH_PAGE_222
-#endif // EEPROM_START_PAGE
-
-#ifndef EEPROM_END_PAGE
-#define EEPROM_END_PAGE FLASH_PAGE_230
-#endif // EEPROM_END_PAGE
-
-#ifndef MAX_FIRMWARE_UDPATE_SIZE
-#define MAX_FIRMWARE_UDPATE_SIZE 1024 * 50
-#endif // MAX_FIRMWARE_UDPATE_SIZE
 
 //
 //
@@ -165,8 +140,10 @@
 #error Incorrect amount of keys or MUX channels
 #endif
 
+#ifndef BOOTLOADER
 #if (!defined(RIGHT) && !defined(LEFT)) || (defined(RIGHT) && defined(LEFT))
 #error Either `LEFT` or `RIGHT` must be defined
 #endif // !RIGHT && !LEFT
+#endif // BOOTLOADER
 
 #endif // SETTINGS_H

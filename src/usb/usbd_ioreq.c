@@ -1,4 +1,5 @@
 #include "usb/usbd_ioreq.h"
+#include "usb/usbd_core.h"
 
 USBD_StatusTypeDef USBD_CtlSendData(USBD_HandleTypeDef *pdev, uint8_t *pbuf,
                                     uint32_t len) {

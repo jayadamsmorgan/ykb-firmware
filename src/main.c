@@ -16,9 +16,7 @@ int main(void) {
 
     // Base
     LOG_INFO("Start booting YarmanKB Dactyl firmware "
-             "version " YARMANKB_DACTYL_FW_VERSION);
-    system_init();
-    LOG_TRACE("System init OK.");
+             "version " YKB_FW_VERSION);
     setup_error_handler();
     ERR_H(setup_clock());
     ERR_H(setup_crs());
@@ -28,6 +26,7 @@ int main(void) {
 
     // Misc
     ERR_H(setup_boot0_handler());
+    ERR_H(setup_fw_update_handler());
 
     // Main
     ERR_H(setup_adc());

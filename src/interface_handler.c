@@ -1,13 +1,11 @@
 #include "interface_handler.h"
 
 #include "fw_update_handler.h"
-#include "hal/systick.h"
 #include "keyboard.h"
 #include "logging.h"
 #include "settings.h"
 #include "usb/usbd_def.h"
 #include "usb/usbd_hid.h"
-#include "utils/utils.h"
 #include "ykb_protocol.h"
 
 #include <stdint.h>
@@ -35,8 +33,6 @@ static void interface_send_reply(ykb_protocol_t *packet, uint8_t *data,
     memset(packet->data, 0, sizeof(packet->data));
     memcpy(packet->data,
            &data[packet->packet_number * YKB_PROTOCOL_DATA_LENGTH], size);
-
-    LOG_INFO("Packet number: %d", packet->packet_number);
 
     packet->crc = ykb_crc16(packet->data, size);
     packet->packet_size = size;
@@ -72,7 +68,8 @@ static void handle_get_mappings(ykb_protocol_t *packet) {
 
 static void handle_get_values(ykb_protocol_t *packet) {
 
-    LOG_DEBUG("New get values request.");
+    LOG_DEBUG("New get values request, packet number: %d",
+              packet->packet_number);
 
     kb_request_values(packet);
 }
@@ -80,7 +77,8 @@ static void handle_get_values(ykb_protocol_t *packet) {
 void interface_handle_get_values_response(ykb_protocol_t *packet,
                                           uint16_t *values) {
 
-    LOG_DEBUG("Responding to get values request...");
+    LOG_DEBUG("Responding to get values request (packet number %d)...",
+              packet->packet_number);
 
     interface_send_reply(packet, (uint8_t *)values,
                          sizeof(uint16_t) * KB_KEY_COUNT);
@@ -88,7 +86,8 @@ void interface_handle_get_values_response(ykb_protocol_t *packet,
 
 static void handle_get_thresholds(ykb_protocol_t *packet) {
 
-    LOG_DEBUG("New get thresholds request.");
+    LOG_DEBUG("New get thresholds request, packet number: %d",
+              packet->packet_number);
 
     uint8_t buff[sizeof(uint8_t) * KB_KEY_COUNT +
                  sizeof(uint16_t) * KB_KEY_COUNT * 2];
@@ -134,7 +133,8 @@ static void thresholds_buffer_cleanup() {
 
 static void handle_set_thresholds(ykb_protocol_t *packet) {
 
-    LOG_DEBUG("New set thresholds request.");
+    LOG_DEBUG("New set thresholds request, packet number: %d",
+              packet->packet_number);
 
     if (packet->packet_number == 0 && thresholds_buffer_length != 0) {
         LOG_DEBUG("Clearing old set thresholds try...");
@@ -160,7 +160,8 @@ static void handle_set_thresholds(ykb_protocol_t *packet) {
 }
 
 static void handle_firmware_update(ykb_protocol_t *packet) {
-    LOG_DEBUG("New firmware update packet.");
+    LOG_DEBUG("New firmware update packet, packet number: %d",
+              packet->packet_number);
 
     if (packet->packet_number == 0 &&
         fw_get_update_source() == FW_UPDATE_SOURCE_USB) {
@@ -183,17 +184,44 @@ static void handle_firmware_update(ykb_protocol_t *packet) {
     interface_send_reply(packet, NULL, 0);
 }
 
+static void handle_bootloader_update(ykb_protocol_t *packet) {
+    LOG_DEBUG("New bootloader update packet, packet number: %d",
+              packet->packet_number);
+
+    if (packet->packet_number == 0 &&
+        bl_get_update_source() == FW_UPDATE_SOURCE_USB) {
+        LOG_DEBUG("Clearing old bootloader update try...");
+        bl_update_cleanup();
+    }
+
+    hal_err err = bl_update_new_chunk(packet->data, packet->packet_size,
+                                      FW_UPDATE_SOURCE_USB);
+
+    if (err) {
+        LOG_ERROR("BL update error: %d", err);
+        return;
+    }
+
+    if (packet->packet_size < YKB_PROTOCOL_DATA_LENGTH) {
+        bl_update_ready();
+    }
+
+    // Send OK
+    interface_send_reply(packet, NULL, 0);
+}
+
 typedef void (*fp)(ykb_protocol_t *packet);
 
 static fp request_fp_map[9] = {
-    handle_get_settings,    //
-    handle_get_mappings,    //
-    handle_get_values,      //
-    handle_get_thresholds,  //
-    handle_set_settings,    //
-    handle_set_mappings,    //
-    handle_set_thresholds,  //
-    handle_firmware_update, //
+    handle_get_settings,      //
+    handle_get_mappings,      //
+    handle_get_values,        //
+    handle_get_thresholds,    //
+    handle_set_settings,      //
+    handle_set_mappings,      //
+    handle_set_thresholds,    //
+    handle_firmware_update,   //
+    handle_bootloader_update, //
 };
 
 void interface_handle_new_packet(uint8_t *packet, uint8_t packet_length) {
@@ -205,7 +233,7 @@ void interface_handle_new_packet(uint8_t *packet, uint8_t packet_length) {
     uint8_t request = result.request_and_version & 0xF0;
 
     if (version != YKB_PROTOCOL_VERSION) {
-        LOG_ERROR("VERSION MISMATCH");
+        LOG_ERROR("VERSION MISMATCH ver %d req %d", version, request);
         return;
     }
 

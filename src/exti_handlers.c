@@ -1,3 +1,4 @@
+#include "hal/gpio.h"
 #include "logging.h"
 #include "utils/utils.h"
 

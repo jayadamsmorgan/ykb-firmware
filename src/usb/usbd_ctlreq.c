@@ -1,5 +1,6 @@
 #include "usb/usbd_ctlreq.h"
 
+#include "usb/usbd_core.h"
 #include "usb/usbd_ioreq.h"
 #include "utils/utils.h"
 

@@ -1,18 +1,17 @@
-#include "settings.h"
-
 #include "eeprom.h"
 
 #include "hal/flash.h"
+#include "memory_map.h"
 
 #include <stdint.h>
 #include <string.h>
 
 // Returns EEPROM size in bytes
-size_t eeprom_get_size() { return EEPROM_END_PAGE - EEPROM_START_PAGE; }
+size_t eeprom_get_size() { return APP_START_ADDRESS - EEPROM_START_ADDRESS; }
 
 hal_err eeprom_init() {
 
-    if (EEPROM_START_PAGE >= EEPROM_END_PAGE) {
+    if (EEPROM_START_ADDRESS >= APP_START_ADDRESS) {
         return ERR_EEPROM_INIT_BADPAGERANGE;
     }
 
@@ -28,7 +27,8 @@ hal_err eeprom_get(uint32_t address, void *value, size_t size) {
         return ERR_EEPROM_GET_BADARGS;
     }
 
-    if (address < EEPROM_START_PAGE || address + size - 1U >= EEPROM_END_PAGE) {
+    if (address < EEPROM_START_ADDRESS ||
+        address + size - 1U >= APP_START_ADDRESS) {
         return ERR_EEPROM_GET_OUTOFBOUNDS;
     }
 
@@ -57,7 +57,7 @@ hal_err eeprom_clear() {
         return err;
     }
 
-    err = flash_erase(EEPROM_START_PAGE, eeprom_get_size() / 4096U, NULL);
+    err = flash_erase(EEPROM_START_ADDRESS, eeprom_get_size() / 4096U, NULL);
     if (err) {
         flash_lock();
         return err;
@@ -80,7 +80,8 @@ hal_err eeprom_save(uint32_t address, void *value, size_t size) {
         return ERR_EEPROM_SAVE_BADARGS;
     }
 
-    if (address < EEPROM_START_PAGE || address + size - 1U >= EEPROM_END_PAGE) {
+    if (address < EEPROM_START_ADDRESS ||
+        address + size - 1U >= APP_START_ADDRESS) {
         return ERR_EEPROM_SAVE_OUTOFBOUNDS;
     }
 

@@ -1,9 +1,9 @@
 #ifndef EEPROM_H
 #define EEPROM_H
 
-#include "hal/flash.h"
+#include "hal/hal_err.h"
 
-#include "settings.h"
+#include <stdint.h>
 
 #define ERR_EEPROM_INIT_BADPAGERANGE -1301
 

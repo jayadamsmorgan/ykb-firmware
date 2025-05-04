@@ -2,10 +2,11 @@
 
 #include "eeprom.h"
 #include "error_handler.h"
-#include "hal/hal.h"
 #include "hal/systick.h"
 #include "interface_handler.h"
 #include "logging.h"
+#include "mappings.h"
+#include "memory_map.h"
 #include "mux.h"
 #include "pinout.h"
 #include "settings.h"
@@ -118,7 +119,7 @@ typedef struct PACKED {
 
 } kb_eeprom_t;
 
-#define EEPROM_KB_STATE_ADDR EEPROM_START_PAGE
+#define EEPROM_KB_STATE_ADDR EEPROM_START_ADDRESS
 
 static inline void kb_save_to_eeprom() {
 
@@ -285,7 +286,7 @@ static inline void kb_init_default() {
 
 hal_err kb_init() {
 
-    LOG_INFO("Initializing...");
+    LOG_INFO("Setting up...");
 
     hal_err err;
 

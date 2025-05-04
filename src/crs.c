@@ -1,5 +1,6 @@
 #include "crs.h"
 
+#include "hal/crs.h"
 #include "logging.h"
 
 #define RELOAD_VALUE 48000000U / 1000U - 1U

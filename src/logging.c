@@ -32,21 +32,25 @@ void _log(log_level level, const char *file_name, const int line,
         return;
     }
 
+#ifdef BOOTLOADER
+    printf("[BL]: ");
+#endif // BOOTLOADER
+
     switch (level) {
     case LOG_LEVEL_TRACE:
-        printf("TRACE: ");
+        printf("[TRACE]: ");
         break;
     case LOG_LEVEL_DEBUG:
-        printf("DEBUG: ");
+        printf("[DEBUG]: ");
         break;
     case LOG_LEVEL_INFO:
-        printf("INFO: ");
+        printf("[INFO]: ");
         break;
     case LOG_LEVEL_ERROR:
-        printf("ERROR: ");
+        printf("[ERROR]: ");
         break;
     case LOG_LEVEL_CRITICAL:
-        printf("CRITICAL: ");
+        printf("[CRITICAL]: ");
         break;
     }
 
