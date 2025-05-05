@@ -1,0 +1,10 @@
+BOARD = STM32WB55xx
+MCU   = cortex-m4
+
+DEVICE_DIR = .
+DEVICE_NAME = DACTYL_V1
+
+DEVICE_LEFT_PID = 0x0001
+DEVICE_RIGHT_PID = 0x0002
+
+include ../common.mk
