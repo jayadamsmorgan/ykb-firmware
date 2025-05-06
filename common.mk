@@ -34,7 +34,7 @@ DEBUG_RIGHT_DIR          = $(DEBUG_DIR)/right/device
 RELEASE_LEFT_DIR         = $(RELEASE_DIR)/left/device
 RELEASE_RIGHT_DIR        = $(RELEASE_DIR)/right/device
 
-CMSIS_INC_DIR            = $(ROOT_DIR)/CMSIS_5/CMSIS/Core/Include
+CMSIS_INC_DIR            = $(ROOT_DIR)/CMSIS_6/CMSIS/Core/Include
 
 # YKB Protocol
 YKB_PROTOCOL_INC_DIR     = $(ROOT_DIR)/ykb_protocol
