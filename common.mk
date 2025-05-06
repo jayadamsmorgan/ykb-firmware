@@ -314,7 +314,11 @@ size-release-right: $(RELEASE_RIGHT_ELF)
 # Clean
 ###############################################################################
 clean-application:
-	rm -rf $(BUILD_DIR)
+	rm -rf $(DEBUG_DIR)/left
+	rm -rf $(DEBUG_DIR)/right
+	rm -rf $(RELEASE_DIR)/left
+	rm -rf $(RELEASE_DIR)/right
 
-clean: clean-bootloader clean-application
+clean:
+	rm -rf $(BUILD_DIR)
 
