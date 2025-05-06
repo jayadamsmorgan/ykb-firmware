@@ -15,14 +15,14 @@ ROOT_DIR   = ..
 DEVICE_SRC_DIR         = $(DEVICE_DIR)/src
 DEVICE_INC_DIR         = $(DEVICE_DIR)/include
 
-HAL_DIR                = $(ROOT_DIR)/stm32wb-hal
+HW_DIR                 = $(ROOT_DIR)/hw/stm32wb
+
+HAL_DIR                = $(HW_DIR)/hal
 HAL_SRC_DIR            = $(HAL_DIR)/src
 HAL_INC_DIR            = $(HAL_DIR)/include
 
-CMSIS_DEVICE_INC_DIR   = $(ROOT_DIR)/cmsis-device-wb/Include
-STARTUP_SRC            = $(ROOT_DIR)/cmsis-device-wb/Source/Templates/gcc/startup_stm32wb55xx_cm4.s
-
-HW_DIR                 = $(ROOT_DIR)/hw/stm32wb
+CMSIS_DEVICE_INC_DIR   = $(HW_DIR)/cmsis-device/Include
+STARTUP_SRC            = $(HW_DIR)/cmsis-device/Source/Templates/gcc/startup_stm32wb55xx_cm4.s
 
 ###############################################################################
 # Settings
