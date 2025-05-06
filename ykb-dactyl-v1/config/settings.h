@@ -26,6 +26,11 @@
 #define HID_BUFFER_SIZE 8
 #endif // HID_BUFFER_SIZE
 
+#ifdef BOOTLOADER
+#undef LEFT
+#define RIGHT
+#endif // BOOTLOADER
+
 // Left part settings:
 
 #ifdef LEFT

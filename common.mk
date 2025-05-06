@@ -2,6 +2,7 @@
 # Project Name
 ###############################################################################
 PROJECT_NAME = ykb-$(DEVICE_NAME)-fw
+
 ###############################################################################
 # Toolchain
 ###############################################################################
@@ -12,45 +13,31 @@ SIZE     = arm-none-eabi-size
 ###############################################################################
 # Directories
 ###############################################################################
-COMMON_DIR			   = $(DEVICE_DIR)/../common
-COMMON_SRC_DIR         = $(COMMON_DIR)/src
-COMMON_INC_DIR         = $(COMMON_DIR)/include
-BOOTLOADER_DIR         = $(DEVICE_DIR)/../bootloader
-CONFIG_INC_DIR         = $(DEVICE_DIR)/config
-HAL_DIR                = $(DEVICE_DIR)/../stm32wb-hal
-HAL_SRC_DIR            = $(HAL_DIR)/src
-HAL_INC_DIR            = $(HAL_DIR)/include
-DEVICE_SRC_DIR         = $(DEVICE_DIR)/src
-DEVICE_INC_DIR         = $(DEVICE_DIR)/include
+COMMON_DIR			     = $(ROOT_DIR)/common
+COMMON_SRC_DIR           = $(COMMON_DIR)/src
+COMMON_INC_DIR           = $(COMMON_DIR)/include
+BOOTLOADER_DIR           = $(ROOT_DIR)/bootloader
+CONFIG_INC_DIR           = $(DEVICE_DIR)/config
 
-BUILD_DIR              = $(DEVICE_DIR)/build
-DEBUG_DIR              = $(BUILD_DIR)/debug
-RELEASE_DIR            = $(BUILD_DIR)/release
+BUILD_DIR                = $(DEVICE_DIR)/build
+DEBUG_DIR                = $(BUILD_DIR)/debug
+RELEASE_DIR              = $(BUILD_DIR)/release
+BUILD_OUTPUTS_DIR        = $(BUILD_DIR)/outputs
 
-LD_DIR                 = $(COMMON_DIR)/ld
-LD_SCRIPT              = $(LD_DIR)/application.ld
+LD_SCRIPT                = $(HW_DIR)/ld/application.ld
 
-DEBUG_LEFT_DIR         = $(DEBUG_DIR)/left
-DEBUG_RIGHT_DIR        = $(DEBUG_DIR)/right
-RELEASE_LEFT_DIR       = $(RELEASE_DIR)/left
-RELEASE_RIGHT_DIR      = $(RELEASE_DIR)/right
+STARTUP_S                = $(BUILD_DIR)/startup.S
+STARTUP_OBJ              = $(BUILD_DIR)/startup.o
+
+DEBUG_LEFT_DIR           = $(DEBUG_DIR)/left/device
+DEBUG_RIGHT_DIR          = $(DEBUG_DIR)/right/device
+RELEASE_LEFT_DIR         = $(RELEASE_DIR)/left/device
+RELEASE_RIGHT_DIR        = $(RELEASE_DIR)/right/device
+
+CMSIS_INC_DIR            = $(ROOT_DIR)/CMSIS_5/CMSIS/Core/Include
 
 # YKB Protocol
-YKB_PROTOCOL_INC_DIR   = $(DEVICE_DIR)/../ykb_protocol
-
-# CMSIS / Device-Specific
-CMSIS_INC_DIR          = $(DEVICE_DIR)/../CMSIS_5/CMSIS/Core/Include
-CMSIS_DEVICE_INC_DIR   = $(DEVICE_DIR)/../cmsis-device-wb/Include
-STARTUP_SRC            = $(DEVICE_DIR)/../cmsis-device-wb/Source/Templates/gcc/startup_stm32wb55xx_cm4.s
-
-STARTUP_S              = $(BUILD_DIR)/startup_stm32wb55xx_cm4.S
-STARTUP_OBJ            = $(BUILD_DIR)/startup_stm32wb55xx_cm4.o
-
-###############################################################################
-# Board/MCU Definitions
-###############################################################################
-BOARD = STM32WB55xx
-MCU   = cortex-m4
+YKB_PROTOCOL_INC_DIR     = $(ROOT_DIR)/ykb_protocol
 
 ###############################################################################
 # Sources
@@ -58,6 +45,8 @@ MCU   = cortex-m4
 SRCS                = $(shell find $(COMMON_SRC_DIR) -type f -name '*.c')
 SRCS               += $(shell find $(DEVICE_SRC_DIR) -type f -name '*.c')
 SRCS               += $(shell find $(HAL_SRC_DIR) -type f -name '*.c')
+
+SYSTEM             += $(HW_DIR)/system/application.c
 
 HEADERS             = $(shell find $(COMMON_INC_DIR) -type f -name '*.h')
 HEADERS            += $(shell find $(HAL_INC_DIR) -type f -name '*.h')
@@ -69,9 +58,11 @@ HEADERS            += $(YKB_PROTOCOL_INC_DIR)/ykb_protocol.h
 ###############################################################################
 DEBUG_LEFT_OBJS         = $(SRCS:%.c=$(DEBUG_LEFT_DIR)/%.o)
 DEBUG_RIGHT_OBJS        = $(SRCS:%.c=$(DEBUG_RIGHT_DIR)/%.o)
+DEBUG_SYSTEM            = $(DEBUG_DIR)/system.o
 
 RELEASE_LEFT_OBJS       = $(SRCS:%.c=$(RELEASE_LEFT_DIR)/%.o)
 RELEASE_RIGHT_OBJS      = $(SRCS:%.c=$(RELEASE_RIGHT_DIR)/%.o)
+RELEASE_SYSTEM          = $(RELEASE_DIR)/system.o
 
 ###############################################################################
 # Compiler/Linker Flags
@@ -87,7 +78,7 @@ INCLUDES                  = -I$(COMMON_INC_DIR) \
 COMMON_FLAGS              = -Wall -Wextra -Werror \
                             -fdata-sections -ffunction-sections \
                             -std=gnu2x \
-                            -fmacro-prefix-map=$(abspath .)=. \
+                            -fmacro-prefix-map=$(abspath $(ROOT_DIR))=. \
                             -mlittle-endian -mthumb -mthumb-interwork \
                             -mfloat-abi=hard -mfpu=fpv4-sp-d16 -mcpu=$(MCU) -D$(BOARD) -D$(DEVICE_NAME)
 
@@ -138,80 +129,95 @@ release: release-left-full release-right-full
 include $(BOOTLOADER_DIR)/bootloader.mk
 
 ###############################################################################
+# System
+###############################################################################
+
+$(DEBUG_SYSTEM):
+	@mkdir -p $(dir $@)
+	$(CC) $(COMMON_FLAGS) $(DEBUG_CFLAGS) $(INCLUDES) -c $(SYSTEM) -o $@
+
+$(RELEASE_SYSTEM):
+	@mkdir -p $(dir $@)
+	$(CC) $(COMMON_FLAGS) $(RELEASE_CFLAGS) $(INCLUDES) -c $(SYSTEM) -o $@
+
+###############################################################################
 # Debug Left
 ###############################################################################
-DEBUG_LEFT_ELF = $(DEBUG_LEFT_DIR)/$(PROJECT_NAME)-left.elf
-DEBUG_LEFT_BIN = $(DEBUG_LEFT_DIR)/$(PROJECT_NAME)-left.bin
+DEBUG_LEFT_ELF = $(BUILD_OUTPUTS_DIR)/$(PROJECT_NAME)-debug-left.elf
+DEBUG_LEFT_BIN = $(BUILD_OUTPUTS_DIR)/$(PROJECT_NAME)-debug-left.bin
 
 debug-left: $(DEBUG_LEFT_BIN)
-
-$(DEBUG_LEFT_ELF): $(DEBUG_LEFT_OBJS) $(STARTUP_OBJ)
-	@echo "Linking Debug Left..."
-	$(CC) $(COMMON_FLAGS) $(INCLUDES) $(DEBUG_CFLAGS) $(LEFT_FLAG) $^ -o $@ $(LDFLAGS)
-
-$(DEBUG_LEFT_BIN): $(DEBUG_LEFT_ELF)
-	$(OBJCOPY) -O binary $< $@
 
 $(DEBUG_LEFT_DIR)/%.o: %.c $(HEADERS)
 	@mkdir -p $(dir $@)
 	$(CC) $(COMMON_FLAGS) $(INCLUDES) $(DEBUG_CFLAGS) $(LEFT_FLAG) -c $< -o $@
 
+$(DEBUG_LEFT_ELF): $(DEBUG_LEFT_OBJS) $(DEBUG_SYSTEM) $(STARTUP_OBJ)
+	@mkdir -p $(dir $@)
+	@echo "Linking Debug Left..."
+	$(CC) $(COMMON_FLAGS) $(INCLUDES) $(DEBUG_CFLAGS) $^ -o $@ $(LDFLAGS)
+
+$(DEBUG_LEFT_BIN): $(DEBUG_LEFT_ELF)
+	$(OBJCOPY) -O binary $< $@
+
 ###############################################################################
 # Debug Right
 ###############################################################################
-DEBUG_RIGHT_ELF = $(DEBUG_RIGHT_DIR)/$(PROJECT_NAME)-right.elf
-DEBUG_RIGHT_BIN = $(DEBUG_RIGHT_DIR)/$(PROJECT_NAME)-right.bin
+DEBUG_RIGHT_ELF = $(BUILD_OUTPUTS_DIR)/$(PROJECT_NAME)-debug-right.elf
+DEBUG_RIGHT_BIN = $(BUILD_OUTPUTS_DIR)/$(PROJECT_NAME)-debug-right.bin
 
 debug-right: $(DEBUG_RIGHT_BIN)
-
-$(DEBUG_RIGHT_ELF): $(DEBUG_RIGHT_OBJS) $(STARTUP_OBJ)
-	@echo "Linking Debug Right..."
-	$(CC) $(COMMON_FLAGS) $(INCLUDES) $(DEBUG_CFLAGS) $(RIGHT_FLAG) $^ -o $@ $(LDFLAGS)
-
-$(DEBUG_RIGHT_BIN): $(DEBUG_RIGHT_ELF)
-	$(OBJCOPY) -O binary $< $@
 
 $(DEBUG_RIGHT_DIR)/%.o: %.c $(HEADERS)
 	@mkdir -p $(dir $@)
 	$(CC) $(COMMON_FLAGS) $(INCLUDES) $(DEBUG_CFLAGS) $(RIGHT_FLAG) -c $< -o $@
 
+$(DEBUG_RIGHT_ELF): $(DEBUG_RIGHT_OBJS) $(DEBUG_SYSTEM) $(STARTUP_OBJ)
+	@mkdir -p $(dir $@)
+	@echo "Linking Debug Right..."
+	$(CC) $(COMMON_FLAGS) $(INCLUDES) $(DEBUG_CFLAGS) $^ -o $@ $(LDFLAGS)
+
+$(DEBUG_RIGHT_BIN): $(DEBUG_RIGHT_ELF)
+	$(OBJCOPY) -O binary $< $@
+
 ###############################################################################
 # Release Left
 ###############################################################################
-RELEASE_LEFT_ELF = $(RELEASE_LEFT_DIR)/$(PROJECT_NAME)-left.elf
-RELEASE_LEFT_BIN = $(RELEASE_LEFT_DIR)/$(PROJECT_NAME)-left.bin
+RELEASE_LEFT_ELF = $(BUILD_OUTPUTS_DIR)/$(PROJECT_NAME)-release-left.elf
+RELEASE_LEFT_BIN = $(BUILD_OUTPUTS_DIR)/$(PROJECT_NAME)-release-left.bin
 
 release-left: $(RELEASE_LEFT_BIN)
-
-$(RELEASE_LEFT_ELF): $(RELEASE_LEFT_OBJS) $(STARTUP_OBJ)
-	@echo "Linking Release Left..."
-	$(CC) $(COMMON_FLAGS) $(INCLUDES) $(RELEASE_CFLAGS) $(LEFT_FLAG) $^ -o $@ $(LDFLAGS)
-
-$(RELEASE_LEFT_BIN): $(RELEASE_LEFT_ELF)
-	$(OBJCOPY) -O binary $< $@
 
 $(RELEASE_LEFT_DIR)/%.o: %.c $(HEADERS)
 	@mkdir -p $(dir $@)
 	$(CC) $(COMMON_FLAGS) $(INCLUDES) $(RELEASE_CFLAGS) $(LEFT_FLAG) -c $< -o $@
 
+$(RELEASE_LEFT_ELF): $(RELEASE_LEFT_OBJS) $(RELEASE_SYSTEM) $(STARTUP_OBJ)
+	@mkdir -p $(dir $@)
+	@echo "Linking Release Left..."
+	$(CC) $(COMMON_FLAGS) $(INCLUDES) $(RELEASE_CFLAGS) $^ -o $@ $(LDFLAGS)
+
+$(RELEASE_LEFT_BIN): $(RELEASE_LEFT_ELF)
+	$(OBJCOPY) -O binary $< $@
+
 ###############################################################################
 # Release Right
 ###############################################################################
-RELEASE_RIGHT_ELF = $(RELEASE_RIGHT_DIR)/$(PROJECT_NAME)-right.elf
-RELEASE_RIGHT_BIN = $(RELEASE_RIGHT_DIR)/$(PROJECT_NAME)-right.bin
+RELEASE_RIGHT_ELF = $(BUILD_OUTPUTS_DIR)/$(PROJECT_NAME)-release-right.elf
+RELEASE_RIGHT_BIN = $(BUILD_OUTPUTS_DIR)/$(PROJECT_NAME)-release-right.bin
 
 release-right: $(RELEASE_RIGHT_BIN)
-
-$(RELEASE_RIGHT_ELF): $(RELEASE_RIGHT_OBJS) $(STARTUP_OBJ)
-	@echo "Linking Release Right..."
-	$(CC) $(COMMON_FLAGS) $(INCLUDES) $(RELEASE_CFLAGS) $(RIGHT_FLAG) $^ -o $@ $(LDFLAGS)
-
-$(RELEASE_RIGHT_BIN): $(RELEASE_RIGHT_ELF)
-	$(OBJCOPY) -O binary $< $@
 
 $(RELEASE_RIGHT_DIR)/%.o: %.c $(HEADERS)
 	@mkdir -p $(dir $@)
 	$(CC) $(COMMON_FLAGS) $(INCLUDES) $(RELEASE_CFLAGS) $(RIGHT_FLAG) -c $< -o $@
+
+$(RELEASE_RIGHT_ELF): $(RELEASE_RIGHT_OBJS) $(RELEASE_SYSTEM) $(STARTUP_OBJ)
+	@echo "Linking Release Right..."
+	$(CC) $(COMMON_FLAGS) $(INCLUDES) $(RELEASE_CFLAGS) $^ -o $@ $(LDFLAGS)
+
+$(RELEASE_RIGHT_BIN): $(RELEASE_RIGHT_ELF)
+	$(OBJCOPY) -O binary $< $@
 
 ###############################################################################
 # Single Startup Object (common to all)
@@ -228,8 +234,8 @@ $(STARTUP_OBJ): $(STARTUP_S)
 ###############################################################################
 # Full firmware
 ###############################################################################
-DEBUG_RIGHT_FULL_HEX = $(DEBUG_RIGHT_DIR)/$(PROJECT_NAME)-right-full.hex
-DEBUG_RIGHT_FULL_BIN = $(DEBUG_RIGHT_DIR)/$(PROJECT_NAME)-right-full.bin
+DEBUG_RIGHT_FULL_HEX = $(BUILD_OUTPUTS_DIR)/$(PROJECT_NAME)-debug-right-full.hex
+DEBUG_RIGHT_FULL_BIN = $(BUILD_OUTPUTS_DIR)/$(PROJECT_NAME)-debug-right-full.bin
 
 debug-right-full: $(DEBUG_RIGHT_FULL_BIN)
 
@@ -242,8 +248,8 @@ $(DEBUG_RIGHT_FULL_HEX): $(DEBUG_BOOTLOADER_BIN) $(DEBUG_RIGHT_BIN)
 $(DEBUG_RIGHT_FULL_BIN): $(DEBUG_RIGHT_FULL_HEX)
 	srec_cat $< -Intel -o $@ -Binary
 
-DEBUG_LEFT_FULL_HEX = $(DEBUG_LEFT_DIR)/$(PROJECT_NAME)-left-full.hex
-DEBUG_LEFT_FULL_BIN = $(DEBUG_LEFT_DIR)/$(PROJECT_NAME)-left-full.bin
+DEBUG_LEFT_FULL_HEX = $(BUILD_OUTPUTS_DIR)/$(PROJECT_NAME)-debug-left-full.hex
+DEBUG_LEFT_FULL_BIN = $(BUILD_OUTPUTS_DIR)/$(PROJECT_NAME)-debug-left-full.bin
 
 debug-left-full: $(DEBUG_LEFT_FULL_BIN)
 
@@ -256,8 +262,8 @@ $(DEBUG_LEFT_FULL_HEX): $(DEBUG_BOOTLOADER_BIN) $(DEBUG_LEFT_BIN)
 $(DEBUG_LEFT_FULL_BIN): $(DEBUG_LEFT_FULL_HEX)
 	srec_cat $< -Intel -o $@ -Binary
 
-RELEASE_RIGHT_FULL_HEX = $(RELEASE_RIGHT_DIR)/$(PROJECT_NAME)-right-full.hex
-RELEASE_RIGHT_FULL_BIN = $(RELEASE_RIGHT_DIR)/$(PROJECT_NAME)-right-full.bin
+RELEASE_RIGHT_FULL_HEX = $(BUILD_OUTPUTS_DIR)/$(PROJECT_NAME)-release-right-full.hex
+RELEASE_RIGHT_FULL_BIN = $(BUILD_OUTPUTS_DIR)/$(PROJECT_NAME)-release-right-full.bin
 
 release-right-full: $(RELEASE_RIGHT_FULL_BIN)
 
@@ -270,8 +276,8 @@ $(RELEASE_RIGHT_FULL_HEX): $(RELEASE_BOOTLOADER_BIN) $(RELEASE_RIGHT_BIN)
 $(RELEASE_RIGHT_FULL_BIN): $(RELEASE_RIGHT_FULL_HEX)
 	srec_cat $< -Intel -o $@ -Binary
 
-RELEASE_LEFT_FULL_HEX = $(RELEASE_LEFT_DIR)/$(PROJECT_NAME)-left-full.hex
-RELEASE_LEFT_FULL_BIN = $(RELEASE_LEFT_DIR)/$(PROJECT_NAME)-left-full.bin
+RELEASE_LEFT_FULL_HEX = $(BUILD_OUTPUTS_DIR)/$(PROJECT_NAME)-release-left-full.hex
+RELEASE_LEFT_FULL_BIN = $(BUILD_OUTPUTS_DIR)/$(PROJECT_NAME)-release-left-full.bin
 
 release-left-full: $(RELEASE_LEFT_FULL_BIN)
 
