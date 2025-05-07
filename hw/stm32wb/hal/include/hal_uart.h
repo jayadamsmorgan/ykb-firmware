@@ -7,8 +7,6 @@
 
 #include <stdint.h>
 
-#if defined(HAL_UART_ENABLED) || defined(HAL_LPUART_ENABLED)
-
 typedef USART_TypeDef uart_t;
 
 #define HAL_UART_STATE_RESET 0x00000000U
@@ -119,6 +117,8 @@ typedef struct {
 
 typedef struct {
 
+    uart_t *instance;
+
     uint32_t baudrate;
 
     uart_word_length word_length;
@@ -211,44 +211,19 @@ typedef struct __uart_handle_t {
 
 } uart_handle_t;
 
-#endif // defined(HAL_UART_ENABLED) || defined(HAL_LPUART_ENABLED)
+hal_err uart_init(uart_handle_t *handle, const uart_init_t *init);
 
-#ifdef HAL_UART_ENABLED
+hal_err uart_fifo_enable(uart_handle_t *handle);
+hal_err uart_fifo_disable(uart_handle_t *handle);
 
-hal_err uart_init(const uart_init_t *init);
+hal_err uart_set_rxfifo_threshold(uart_handle_t *handle,
+                                  uart_rxfifo_threshold threshold);
+hal_err uart_set_txfifo_threshold(uart_handle_t *handle,
+                                  uart_txfifo_threshold threshold);
 
-uart_handle_t *uart_get_handle();
-
-hal_err uart_fifo_enable();
-hal_err uart_fifo_disable();
-
-hal_err uart_set_rxfifo_threshold(uart_rxfifo_threshold threshold);
-hal_err uart_set_txfifo_threshold(uart_txfifo_threshold threshold);
-
-hal_err uart_transmit(const uint8_t *tx_buffer, uint16_t buffer_size,
-                      uint32_t timeout);
-hal_err uart_receive(uint8_t *rx_buffer, uint16_t buffer_size,
-                     uint32_t timeout);
-
-#endif // HAL_UART_ENABLED
-
-#ifdef HAL_LPUART_ENABLED
-
-hal_err lpuart_init(const uart_init_t *init);
-
-uart_handle_t *lpuart_get_handle();
-
-hal_err lpuart_fifo_enable();
-hal_err lpuart_fifo_disable();
-
-hal_err lpuart_set_rxfifo_threshold(uart_rxfifo_threshold threshold);
-hal_err lpuart_set_txfifo_threshold(uart_txfifo_threshold threshold);
-
-hal_err lpuart_transmit(const uint8_t *tx_buffer, uint16_t buffer_size,
-                        uint32_t timeout);
-hal_err lpuart_receive(uint8_t *rx_buffer, uint16_t buffer_size,
-                       uint32_t timeout);
-
-#endif // HAL_LPUART_ENABLED
+hal_err uart_transmit(uart_handle_t *handle, const uint8_t *tx_buffer,
+                      uint16_t buffer_size, uint32_t timeout);
+hal_err uart_receive(uart_handle_t *handle, uint8_t *rx_buffer,
+                     uint16_t buffer_size, uint32_t timeout);
 
 #endif // HAL_UART_H

@@ -8,6 +8,8 @@
 
 #include <stdint.h>
 
+#define HID_BUFFER_SIZE 8
+
 // TYPES
 
 #ifdef __GNUC__

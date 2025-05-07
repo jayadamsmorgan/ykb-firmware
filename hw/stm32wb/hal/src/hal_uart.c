@@ -15,13 +15,11 @@
 // Common
 //
 
-#if defined(HAL_UART_ENABLED) || defined(HAL_LPUART_ENABLED)
-
 const uint16_t UARTPrescTable[12] = {1U,  2U,  4U,  6U,  8U,   10U,
                                      12U, 16U, 32U, 64U, 128U, 256U};
 
 // Enable clock + pin setup
-static hal_err anyuart_init_msp(volatile uart_handle_t *handle) {
+static hal_err uart_init_msp(volatile uart_handle_t *handle) {
 
     gpio_af_mode mode;
     gpio_pin_t tx = handle->init.tx_pin;
@@ -456,15 +454,16 @@ static inline void anyuart_mask_update(volatile uart_handle_t *handle) {
     }
 }
 
-static hal_err anyuart_init(volatile uart_handle_t *handle,
-                            const uart_init_t *init) {
+hal_err uart_init(uart_handle_t *handle, const uart_init_t *init) {
     if (!init) {
         return ERR_UART_INIT_ARGNULL;
     }
     handle->init = *init;
 
+    handle->instance = init->instance;
+
     if (handle->state == HAL_UART_STATE_RESET) {
-        hal_err err = anyuart_init_msp(handle);
+        hal_err err = uart_init_msp(handle);
         if (err) {
             return err;
         }
@@ -518,8 +517,8 @@ anyuart_set_data_process_amounts(volatile uart_handle_t *handle) {
         (8U * numerator[rx_fifo_threshold]) / denominator[rx_fifo_threshold];
 }
 
-static hal_err anyuart_set_txfifo_threshold(volatile uart_handle_t *handle,
-                                            uart_txfifo_threshold threshold) {
+hal_err uart_set_txfifo_threshold(uart_handle_t *handle,
+                                  uart_txfifo_threshold threshold) {
 
     if (handle->lock) {
         return ERR_UART_SETTXFIFO_BUSY;
@@ -542,8 +541,8 @@ static hal_err anyuart_set_txfifo_threshold(volatile uart_handle_t *handle,
     return OK;
 }
 
-static hal_err anyuart_set_rxfifo_threshold(volatile uart_handle_t *handle,
-                                            uart_rxfifo_threshold threshold) {
+hal_err uart_set_rxfifo_threshold(uart_handle_t *handle,
+                                  uart_rxfifo_threshold threshold) {
 
     if (handle->lock) {
         return ERR_UART_SETRXFIFO_BUSY;
@@ -566,7 +565,7 @@ static hal_err anyuart_set_rxfifo_threshold(volatile uart_handle_t *handle,
     return OK;
 }
 
-static hal_err anyuart_fifo_enable(volatile uart_handle_t *handle) {
+hal_err uart_fifo_enable(uart_handle_t *handle) {
     if (handle->lock) {
         return ERR_UART_FIFOEN_BUSY;
     }
@@ -587,7 +586,7 @@ static hal_err anyuart_fifo_enable(volatile uart_handle_t *handle) {
     return OK;
 }
 
-static hal_err anyuart_fifo_disable(volatile uart_handle_t *handle) {
+hal_err uart_fifo_disable(uart_handle_t *handle) {
     if (handle->lock) {
         return ERR_UART_FIFOEN_BUSY;
     }
@@ -608,9 +607,8 @@ static hal_err anyuart_fifo_disable(volatile uart_handle_t *handle) {
     return OK;
 }
 
-static hal_err anyuart_receive(volatile uart_handle_t *handle,
-                               uint8_t *rx_buffer, uint16_t buffer_size,
-                               uint32_t timeout) {
+hal_err uart_receive(uart_handle_t *handle, uint8_t *rx_buffer,
+                     uint16_t buffer_size, uint32_t timeout) {
 
     if (handle->rx_state != HAL_UART_STATE_READY) {
         return ERR_UART_RX_BUSY;
@@ -663,9 +661,8 @@ static hal_err anyuart_receive(volatile uart_handle_t *handle,
     return OK;
 }
 
-static hal_err anyuart_transmit(volatile uart_handle_t *handle,
-                                const uint8_t *tx_buffer, uint16_t buffer_size,
-                                uint32_t timeout) {
+hal_err uart_transmit(uart_handle_t *handle, const uint8_t *tx_buffer,
+                      uint16_t buffer_size, uint32_t timeout) {
 
     if (handle->state != HAL_UART_STATE_READY) {
         return ERR_UART_TX_BUSY;
@@ -719,100 +716,3 @@ static hal_err anyuart_transmit(volatile uart_handle_t *handle,
     handle->state = HAL_UART_STATE_READY;
     return OK;
 }
-
-#endif // defined(HAL_UART_ENABLED) || defined(HAL_LPUART_ENABLED)
-
-//
-// UART
-//
-
-#ifdef HAL_UART_ENABLED
-
-static volatile uart_handle_t hal_uart_handle;
-
-hal_err uart_init(const uart_init_t *init) {
-    hal_uart_handle.instance = USART1;
-    return anyuart_init(&hal_uart_handle, init);
-}
-
-uart_handle_t *uart_get_handle() {
-    //
-    return (uart_handle_t *)&hal_uart_handle;
-}
-
-hal_err uart_fifo_enable() {
-    //
-    return anyuart_fifo_enable(&hal_uart_handle);
-}
-
-hal_err uart_fifo_disable() {
-    //
-    return anyuart_fifo_disable(&hal_uart_handle);
-}
-
-hal_err uart_set_rxfifo_threshold(uart_rxfifo_threshold threshold) {
-    return anyuart_set_rxfifo_threshold(&hal_uart_handle, threshold);
-}
-
-hal_err uart_set_txfifo_threshold(uart_txfifo_threshold threshold) {
-    return anyuart_set_txfifo_threshold(&hal_uart_handle, threshold);
-}
-
-hal_err uart_transmit(const uint8_t *tx_buffer, uint16_t buffer_size,
-                      uint32_t timeout) {
-    return anyuart_transmit(&hal_uart_handle, tx_buffer, buffer_size, timeout);
-}
-
-hal_err uart_receive(uint8_t *rx_buffer, uint16_t buffer_size,
-                     uint32_t timeout) {
-    return anyuart_receive(&hal_uart_handle, rx_buffer, buffer_size, timeout);
-}
-
-#endif // HAL_UART_ENABLED
-
-//
-// LPUART
-//
-
-#ifdef HAL_LPUART_ENABLED
-
-static volatile uart_handle_t hal_lpuart_handle;
-
-hal_err lpuart_init(const uart_init_t *init) {
-    hal_lpuart_handle.instance = LPUART1;
-    return anyuart_init(&hal_lpuart_handle, init);
-}
-
-uart_handle_t *lpuart_get_handle() {
-    return (uart_handle_t *)&hal_lpuart_handle;
-}
-
-hal_err lpuart_fifo_enable() {
-    //
-    return anyuart_fifo_enable(&hal_lpuart_handle);
-}
-
-hal_err lpuart_fifo_disable() {
-    return anyuart_fifo_disable(&hal_lpuart_handle);
-}
-
-hal_err lpuart_set_rxfifo_threshold(uart_rxfifo_threshold threshold) {
-    return anyuart_set_rxfifo_threshold(&hal_lpuart_handle, threshold);
-}
-
-hal_err lpuart_set_txfifo_threshold(uart_txfifo_threshold threshold) {
-    return anyuart_set_txfifo_threshold(&hal_lpuart_handle, threshold);
-}
-
-hal_err lpuart_transmit(const uint8_t *tx_buffer, uint16_t buffer_size,
-                        uint32_t timeout) {
-    return anyuart_transmit(&hal_lpuart_handle, tx_buffer, buffer_size,
-                            timeout);
-}
-
-hal_err lpuart_receive(uint8_t *rx_buffer, uint16_t buffer_size,
-                       uint32_t timeout) {
-    return anyuart_receive(&hal_lpuart_handle, rx_buffer, buffer_size, timeout);
-}
-
-#endif // HAL_LPUART_ENABLED

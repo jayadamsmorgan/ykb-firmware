@@ -6,20 +6,50 @@
 // Keyboard Settings
 //
 
+#ifndef KB_KEY_THRESHOLD_DEFAULT
 #define KB_KEY_THRESHOLD_DEFAULT 50
+#endif // KB_KEY_THRESHOLD_DEFAULT
 
+#ifndef KB_KEY_MAX_VALUE_THRESHOLD_DEFAULT
 #define KB_KEY_MAX_VALUE_THRESHOLD_DEFAULT 1023
+#endif // KB_KEY_MAX_VALUE_THRESHOLD_DEFAULT
 
+#ifndef KB_DEFAULT_POLLING_RATE
 #define KB_DEFAULT_POLLING_RATE 1
+#endif // KB_DEFAULT_POLLING_RATE
 
+#ifndef KB_ADC_SAMPLING_DEFAULT
 #define KB_ADC_SAMPLING_DEFAULT ADC_SMP_92_5_CYCLES
+#endif // KB_ADC_SAMPLING_DEFAULT
+
+#ifndef HID_BUFFER_SIZE
+#define HID_BUFFER_SIZE 8
+#endif // HID_BUFFER_SIZE
 
 #ifdef BOOTLOADER
 #undef LEFT
 #define RIGHT
 #endif // BOOTLOADER
 
+// Left part settings:
+
+#ifdef LEFT
+
+#ifndef KB_KEY_COUNT
 #define KB_KEY_COUNT 35
+#endif // KB_KEY_COUNT
+
+#endif // LEFT
+
+// Right part settings:
+
+#ifdef RIGHT
+
+#ifndef KB_KEY_COUNT
+#define KB_KEY_COUNT 35
+#endif // KB_KEY_COUNT
+
+#endif // RIGHT
 
 //
 //
@@ -28,17 +58,37 @@
 // Both KB_KEY_COUNT and MUXx_KEY_COUNT
 // might be greater than the actual key count
 // Because some of the channels are skipped
+#ifdef LEFT
 
-#define MUX_ENABLED 1
-
+#ifndef MUX1_KEY_COUNT
 #define MUX1_KEY_COUNT 11
+#endif // MUX1_KEY_COUNT
 
+#ifndef MUX2_KEY_COUNT
 #define MUX2_KEY_COUNT 15
+#endif // MUX2_KEY_COUNT
 
+#ifndef MUX3_KEY_COUNT
 #define MUX3_KEY_COUNT 9
+#endif // MUX3_KEY_COUNT
 
-#define DEBUG_UART_ENABLED 1
-#define DEBUG_UART_INSTANCE LPUART1
+#endif // LEFT
+
+#ifdef RIGHT
+
+#ifndef MUX1_KEY_COUNT
+#define MUX1_KEY_COUNT 11
+#endif // MUX1_KEY_COUNT
+
+#ifndef MUX2_KEY_COUNT
+#define MUX2_KEY_COUNT 15
+#endif // MUX2_KEY_COUNT
+
+#ifndef MUX3_KEY_COUNT
+#define MUX3_KEY_COUNT 9
+#endif // MUX3_KEY_COUNT
+
+#endif // RIGHT
 
 //
 //
@@ -47,10 +97,17 @@
 
 #ifdef DEBUG
 
+#ifndef LOG_LEVEL
 #define LOG_LEVEL LOG_LEVEL_INFO
+#endif // LOG_LEVEL
 
+#ifndef DBG_LONG_BLINK_DELAY
 #define DBG_LONG_BLINK_DELAY 1000
+#endif // DBG_LONG_BLINK_DELAY
+
+#ifndef DBG_SHORT_BLINK_DELAY
 #define DBG_SHORT_BLINK_DELAY 300
+#endif // DBG_SHORT_BLINK_DELAY
 
 #endif // DEBUG
 

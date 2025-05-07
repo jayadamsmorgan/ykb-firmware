@@ -87,7 +87,7 @@ LDFLAGS                   = -T $(LD_SCRIPT) $(COMMON_LDFLAGS)
 
 GIT_HASH                  = $(shell git describe --dirty=+ --always)
 
-DEBUG_CFLAGS              = -g -gdwarf-2 -Og -DHAL_LPUART_ENABLED -DDEBUG -DGIT_HASH=\"$(GIT_HASH)\"
+DEBUG_CFLAGS              = -g -gdwarf-2 -Og -DDEBUG -DGIT_HASH=\"$(GIT_HASH)\"
 RELEASE_CFLAGS            = -O3
 
 LEFT_FLAG  = -DLEFT -DUSBD_PID=$(DEVICE_LEFT_PID)
