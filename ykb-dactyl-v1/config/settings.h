@@ -6,92 +6,37 @@
 // Keyboard Settings
 //
 
+#ifndef KB_KEY_THRESHOLD_DEFAULT
 #define KB_KEY_THRESHOLD_DEFAULT 50
+#endif // KB_KEY_THRESHOLD_DEFAULT
 
+#ifndef KB_KEY_MAX_VALUE_THRESHOLD_DEFAULT
 #define KB_KEY_MAX_VALUE_THRESHOLD_DEFAULT 1023
+#endif // KB_KEY_MAX_VALUE_THRESHOLD_DEFAULT
 
+#ifndef KB_DEFAULT_POLLING_RATE
 #define KB_DEFAULT_POLLING_RATE 1
+#endif // KB_DEFAULT_POLLING_RATE
 
-#define KB_ADC_SAMPLING_DEFAULT ADC_SMP_92_5_CYCLES
-
-#ifdef BOOTLOADER
-#undef LEFT
-#define RIGHT
-#endif // BOOTLOADER
+#ifndef KB_ADC_SAMPLING_DEFAULT
+#define KB_ADC_SAMPLING_DEFAULT ADC_SMP_2_5_CYCLES
+#endif // KB_ADC_SAMPLING_DEFAULT
 
 #define KB_KEY_COUNT 35
 
-//
-//
-// Multiplexors Settings
-//
-// Both KB_KEY_COUNT and MUXx_KEY_COUNT
-// might be greater than the actual key count
-// Because some of the channels are skipped
-
 #define MUX_ENABLED 1
-
 #define MUX1_KEY_COUNT 11
-
 #define MUX2_KEY_COUNT 15
-
 #define MUX3_KEY_COUNT 9
 
+#ifndef DEBUG_UART_ENABLED
 #define DEBUG_UART_ENABLED 1
-#define DEBUG_UART_INSTANCE LPUART1
-
-//
-//
-// Debug
-//
-
-#ifdef DEBUG
-
+#endif // DEBUG_UART_ENABLED
+#ifndef LOG_LEVEL
 #define LOG_LEVEL LOG_LEVEL_INFO
-
+#endif // LOG_LEVEL
+#define DEBUG_UART_INSTANCE LPUART1
 #define DBG_LONG_BLINK_DELAY 1000
 #define DBG_SHORT_BLINK_DELAY 300
-
-#endif // DEBUG
-
-//
-//
-// Change with caution:
-//
-
-#define MAX3(a, b, c)                                                          \
-    (((a) > (b)) ? ((a) > (c) ? (a) : (c)) : ((b) > (c) ? (b) : (c)))
-#define MAX_CHANNELS_PER_MUX                                                   \
-    MAX3(MUX1_KEY_COUNT, MUX2_KEY_COUNT, MUX3_KEY_COUNT)
-
-//
-//
-// Checks
-//
-// Double checking settings are somewhat correct
-
-#if KB_KEY_THRESHOLD_DEFAULT < 1 || KB_KEY_THRESHOLD_DEFAULT > 100
-#error `KB_KEY_THRESHOLD_DEFAULT` value must be a percentage [1-100]
-#endif
-
-#if MUX1_KEY_COUNT < 0 || MUX1_KEY_COUNT > 16
-#error Too much keys (channels) for MUX1
-#endif
-#if MUX2_KEY_COUNT < 0 || MUX2_KEY_COUNT > 16
-#error Too much keys (channels) for MUX2
-#endif
-#if MUX3_KEY_COUNT < 0 || MUX3_KEY_COUNT > 16
-#error Too much keys (channels) for MUX3
-#endif
-
-#if MUX1_KEY_COUNT + MUX2_KEY_COUNT + MUX3_KEY_COUNT != KB_KEY_COUNT
-#error Incorrect amount of keys or MUX channels
-#endif
-
-#ifndef BOOTLOADER
-#if (!defined(RIGHT) && !defined(LEFT)) || (defined(RIGHT) && defined(LEFT))
-#error Either `LEFT` or `RIGHT` must be defined
-#endif // !RIGHT && !LEFT
-#endif // BOOTLOADER
 
 #endif // SETTINGS_H

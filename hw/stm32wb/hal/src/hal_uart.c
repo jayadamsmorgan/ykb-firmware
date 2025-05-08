@@ -625,8 +625,8 @@ hal_err uart_receive(uart_handle_t *handle, uint8_t *rx_buffer,
     handle->rx_xfer_size = buffer_size;
     handle->rx_xfer_count = buffer_size;
 
-    uint8_t *buff_8bits;
-    uint16_t *buff_16bits;
+    uint8_t *buff_8bits = NULL;
+    uint16_t *buff_16bits = NULL;
 
     // In case of 9bits/No Parity transfer, pRxData needs to be handled as a
     // uint16_t pointer
@@ -678,8 +678,8 @@ hal_err uart_transmit(uart_handle_t *handle, const uint8_t *tx_buffer,
     handle->tx_xfer_size = buffer_size;
     handle->tx_xfer_count = buffer_size;
 
-    const uint8_t *buff_8bits;
-    const uint16_t *buff_16bits;
+    const uint8_t *buff_8bits = NULL;
+    const uint16_t *buff_16bits = NULL;
 
     // In case of 9bits/No Parity transfer, pRxData needs to be handled as a
     // uint16_t pointer

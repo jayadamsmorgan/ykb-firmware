@@ -1,3 +1,9 @@
+#ifndef BOOTLOADER
+
+#include "settings.h"
+
+#include "checks.h"
+
 #include "logging.h"
 #include "version.h"
 
@@ -40,3 +46,5 @@ int main(void) {
         fw_update_handler();
     }
 }
+
+#endif // !BOOTLOADER

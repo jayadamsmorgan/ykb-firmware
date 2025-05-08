@@ -1,3 +1,7 @@
+#include "settings.h"
+
+#if defined(MUX_ENABLED) && MUX_ENABLED == 1
+
 #include "mux.h"
 
 #include "hal_bits.h"
@@ -42,3 +46,5 @@ hal_err mux_select_channel(const mux_t *const mux, uint8_t channel) {
 
     return OK;
 }
+
+#endif // MUX_ENABLED

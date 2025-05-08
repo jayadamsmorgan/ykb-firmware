@@ -1,3 +1,9 @@
+#include "settings.h"
+
+#include "checks.h"
+
+#if defined(ENABLE_DEFAULT_INTERRUPTS) && ENABLE_DEFAULT_INTERRUPTS == 1
+
 #include "hal_pcd.h"
 
 #include "logging.h"
@@ -8,7 +14,6 @@ void NMI_Handler(void) { LOG_TRACE("NMI_Handler."); }
 
 void HardFault_Handler(void) {
     LOG_CRITICAL("HARDFAULT.");
-    LOG_DEBUG("FLASH->SR: %d", FLASH->SR);
     while (1) {
     }
 }
@@ -38,3 +43,5 @@ void DebugMon_Handler(void) { LOG_TRACE("DebugMon Handler triggered."); }
 void PendSV_Handler(void) { LOG_TRACE("PendSV Handler triggered"); }
 
 void USB_LP_IRQHandler(void) { HAL_PCD_IRQHandler(&hpcd_USB_FS); }
+
+#endif // ENABLE_DEFAULT_INTERRUPTS
