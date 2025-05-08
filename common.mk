@@ -254,7 +254,7 @@ DEBUG_LEFT_FULL_BIN = $(BUILD_OUTPUTS_DIR)/$(PROJECT_NAME)-debug-left-full.bin
 debug-left-full: $(DEBUG_LEFT_FULL_BIN)
 
 $(DEBUG_LEFT_FULL_HEX): $(DEBUG_BOOTLOADER_BIN) $(DEBUG_LEFT_BIN)
-	@echo "Merging Debug Right into full firmware..."
+	@echo "Merging Debug Left into full firmware..."
 	srec_cat $(DEBUG_BOOTLOADER_BIN) -Binary -offset 0x00000000 \
 	         $(DEBUG_LEFT_BIN) -Binary -offset 0x00014000 \
 	         -o $@ -Intel
@@ -268,7 +268,7 @@ RELEASE_RIGHT_FULL_BIN = $(BUILD_OUTPUTS_DIR)/$(PROJECT_NAME)-release-right-full
 release-right-full: $(RELEASE_RIGHT_FULL_BIN)
 
 $(RELEASE_RIGHT_FULL_HEX): $(RELEASE_BOOTLOADER_BIN) $(RELEASE_RIGHT_BIN)
-	@echo "Merging Debug Right into full firmware..."
+	@echo "Merging Release Right into full firmware..."
 	srec_cat $(RELEASE_BOOTLOADER_BIN) -Binary -offset 0x00000000 \
 	         $(RELEASE_RIGHT_BIN) -Binary -offset 0x00014000 \
 	         -o $@ -Intel
@@ -282,7 +282,7 @@ RELEASE_LEFT_FULL_BIN = $(BUILD_OUTPUTS_DIR)/$(PROJECT_NAME)-release-left-full.b
 release-left-full: $(RELEASE_LEFT_FULL_BIN)
 
 $(RELEASE_LEFT_FULL_HEX): $(RELEASE_BOOTLOADER_BIN) $(RELEASE_LEFT_BIN)
-	@echo "Merging Debug Right into full firmware..."
+	@echo "Merging Release Left into full firmware..."
 	srec_cat $(RELEASE_BOOTLOADER_BIN) -Binary -offset 0x00000000 \
 	         $(RELEASE_LEFT_BIN) -Binary -offset 0x00014000 \
 	         -o $@ -Intel
