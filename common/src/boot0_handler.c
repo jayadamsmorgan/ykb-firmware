@@ -1,3 +1,7 @@
+#include "settings.h"
+
+#if defined(BOOT0_HANDLER_ENABLED) && BOOT0_HANDLER_ENABLED == 1
+
 #include "boot0_handler.h"
 
 #include "hal_gpio.h"
@@ -43,3 +47,5 @@ void exti_handler_3() {
     LOG_INFO("Triggered. Going to DFU...");
     NVIC_SystemReset();
 }
+
+#endif // BOOT0_HANDLER_ENABLED

@@ -14,9 +14,12 @@
 #include <string.h>
 #include <sys/types.h>
 
+#if defined(USB_ENABLED) && USB_ENABLED == 1
 extern USBD_HandleTypeDef hUsbDeviceFS;
+#endif // USB_ENABLED
 
-static void interface_send_reply(ykb_protocol_t *packet, uint8_t *data,
+static void interface_send_reply(communication_source source,
+                                 ykb_protocol_t *packet, uint8_t *data,
                                  uint32_t data_length) {
 
     uint16_t size = data_length;
@@ -41,10 +44,23 @@ static void interface_send_reply(ykb_protocol_t *packet, uint8_t *data,
 
     memcpy(&buff[1], packet, sizeof(ykb_protocol_t));
 
-    USBD_HID_SendReport(&hUsbDeviceFS, VEND_HID_EPIN_ADDR, buff, sizeof(buff));
+    switch (source) {
+    case COMMUNICATION_SOURCE_USB:
+#if defined(USB_ENABLED) && USB_ENABLED == 1
+        USBD_HID_SendReport(&hUsbDeviceFS, VEND_HID_EPIN_ADDR, buff,
+                            sizeof(buff));
+#endif // USB_ENABLED
+        break;
+    case COMMUNICATION_SOURCE_BT:
+#if defined(BLUETOOTH_ENABLED) && BLUETOOTH_ENABLED == 1
+        // TODO
+#endif // BLUETOOTH_ENABLED
+        break;
+    }
 }
 
-static void handle_get_settings(ykb_protocol_t *packet) {
+static void handle_get_settings(communication_source source,
+                                ykb_protocol_t *packet) {
 
     LOG_DEBUG("New get settings request.");
 
@@ -53,10 +69,11 @@ static void handle_get_settings(ykb_protocol_t *packet) {
     kb_get_settings(buff);
 
     // Send OK
-    interface_send_reply(packet, buff, sizeof(buff));
+    interface_send_reply(source, packet, buff, sizeof(buff));
 }
 
-static void handle_get_mappings(ykb_protocol_t *packet) {
+static void handle_get_mappings(communication_source source,
+                                ykb_protocol_t *packet) {
 
     LOG_DEBUG("New get mappings request.");
 
@@ -65,28 +82,31 @@ static void handle_get_mappings(ykb_protocol_t *packet) {
     kb_get_mappings(buff);
 
     // Send OK
-    interface_send_reply(packet, buff, sizeof(buff));
+    interface_send_reply(source, packet, buff, sizeof(buff));
 }
 
-static void handle_get_values(ykb_protocol_t *packet) {
+static void handle_get_values(communication_source source,
+                              ykb_protocol_t *packet) {
 
     LOG_DEBUG("New get values request, packet number: %d",
               packet->packet_number);
 
-    kb_request_values(packet);
+    kb_request_values(source, packet);
 }
 
-void interface_handle_get_values_response(ykb_protocol_t *packet,
+void interface_handle_get_values_response(communication_source source,
+                                          ykb_protocol_t *packet,
                                           uint16_t *values) {
 
     LOG_DEBUG("Responding to get values request (packet number %d)...",
               packet->packet_number);
 
-    interface_send_reply(packet, (uint8_t *)values,
+    interface_send_reply(source, packet, (uint8_t *)values,
                          sizeof(uint16_t) * KB_KEY_COUNT);
 }
 
-static void handle_get_thresholds(ykb_protocol_t *packet) {
+static void handle_get_thresholds(communication_source source,
+                                  ykb_protocol_t *packet) {
 
     LOG_DEBUG("New get thresholds request, packet number: %d",
               packet->packet_number);
@@ -97,10 +117,11 @@ static void handle_get_thresholds(ykb_protocol_t *packet) {
     kb_get_thresholds(buff);
 
     // Send OK
-    interface_send_reply(packet, buff, sizeof(buff));
+    interface_send_reply(source, packet, buff, sizeof(buff));
 }
 
-static void handle_set_settings(ykb_protocol_t *packet) {
+static void handle_set_settings(communication_source source,
+                                ykb_protocol_t *packet) {
 
     LOG_DEBUG("New set settings request.");
 
@@ -109,10 +130,11 @@ static void handle_set_settings(ykb_protocol_t *packet) {
     kb_set_settings(&new_settings);
 
     // Send OK
-    interface_send_reply(packet, NULL, 0);
+    interface_send_reply(source, packet, NULL, 0);
 }
 
-static void handle_set_mappings(ykb_protocol_t *packet) {
+static void handle_set_mappings(communication_source source,
+                                ykb_protocol_t *packet) {
 
     LOG_DEBUG("New set mappings request.");
 
@@ -121,7 +143,7 @@ static void handle_set_mappings(ykb_protocol_t *packet) {
     kb_set_mappings(mappings);
 
     // Send OK
-    interface_send_reply(packet, NULL, 0);
+    interface_send_reply(source, packet, NULL, 0);
 }
 
 static uint8_t thresholds_buffer[KB_KEY_COUNT * sizeof(uint16_t) * 2 +
@@ -133,7 +155,8 @@ static void thresholds_buffer_cleanup() {
     thresholds_buffer_length = 0U;
 }
 
-static void handle_set_thresholds(ykb_protocol_t *packet) {
+static void handle_set_thresholds(communication_source source,
+                                  ykb_protocol_t *packet) {
 
     LOG_DEBUG("New set thresholds request, packet number: %d",
               packet->packet_number);
@@ -158,10 +181,11 @@ static void handle_set_thresholds(ykb_protocol_t *packet) {
         thresholds_buffer_cleanup();
     }
 
-    interface_send_reply(packet, NULL, 0);
+    interface_send_reply(source, packet, NULL, 0);
 }
 
-static void handle_firmware_update(ykb_protocol_t *packet) {
+static void handle_firmware_update(communication_source source,
+                                   ykb_protocol_t *packet) {
     LOG_DEBUG("New firmware update packet, packet number: %d",
               packet->packet_number);
 
@@ -183,10 +207,11 @@ static void handle_firmware_update(ykb_protocol_t *packet) {
     }
 
     // Send OK
-    interface_send_reply(packet, NULL, 0);
+    interface_send_reply(source, packet, NULL, 0);
 }
 
-static void handle_bootloader_update(ykb_protocol_t *packet) {
+static void handle_bootloader_update(communication_source source,
+                                     ykb_protocol_t *packet) {
     LOG_DEBUG("New bootloader update packet, packet number: %d",
               packet->packet_number);
 
@@ -209,10 +234,10 @@ static void handle_bootloader_update(ykb_protocol_t *packet) {
     }
 
     // Send OK
-    interface_send_reply(packet, NULL, 0);
+    interface_send_reply(source, packet, NULL, 0);
 }
 
-typedef void (*fp)(ykb_protocol_t *packet);
+typedef void (*fp)(communication_source source, ykb_protocol_t *packet);
 
 static fp request_fp_map[9] = {
     handle_get_settings,      //
@@ -226,7 +251,8 @@ static fp request_fp_map[9] = {
     handle_bootloader_update, //
 };
 
-void interface_handle_new_packet(uint8_t *packet, uint8_t packet_length) {
+void interface_handle_new_packet(communication_source source, uint8_t *packet,
+                                 uint8_t packet_length) {
 
     ykb_protocol_t result;
     memcpy(&result, packet, packet_length);
@@ -240,6 +266,6 @@ void interface_handle_new_packet(uint8_t *packet, uint8_t packet_length) {
     }
 
     if (IS_YKB_GET_REQUEST(request) || IS_YKB_SET_REQUEST(request)) {
-        request_fp_map[(request >> 4) - 1](&result);
+        request_fp_map[(request >> 4) - 1](source, &result);
     }
 }

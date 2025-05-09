@@ -71,8 +71,10 @@ static uart_handle_t uart_handle;
 
 hal_err setup_logging() {
 
-    gpio_turn_on_port(PIN_LED_DBG2.gpio);
-    gpio_set_mode(PIN_LED_DBG2, GPIO_MODE_OUTPUT);
+#ifdef PIN_SERIAL_ACTIVITY_LED
+    gpio_turn_on_port(PIN_SERIAL_ACTIVITY_LED.gpio);
+    gpio_set_mode(PIN_SERIAL_ACTIVITY_LED, GPIO_MODE_OUTPUT);
+#endif // PIN_SERIAL_ACTIVITY_LED
 
     uart_init_t init;
     init.instance = DEBUG_UART_INSTANCE;
@@ -114,10 +116,14 @@ hal_err setup_logging() {
     if (log_str_queue_index > 0) {
 
         for (uint8_t i = 0; i < log_str_queue_index; i++) {
-            gpio_digital_write(PIN_LED_DBG2, HIGH);
+#ifdef PIN_SERIAL_ACTIVITY_LED
+            gpio_digital_write(PIN_SERIAL_ACTIVITY_LED, HIGH);
+#endif // PIN_SERIAL_ACTIVITY_LED
             string_to_write str = log_str_queue[i];
             uart_transmit(&uart_handle, (uint8_t *)str.data, str.len, 0xFFFF);
-            gpio_digital_write(PIN_LED_DBG2, LOW);
+#ifdef PIN_SERIAL_ACTIVITY_LED
+            gpio_digital_write(PIN_SERIAL_ACTIVITY_LED, LOW);
+#endif // PIN_SERIAL_ACTIVITY_LED
         }
 
         log_str_queue_index = 0;
@@ -133,9 +139,13 @@ int _write(int file, char *ptr, int len) {
 
     if (logging_set_up) {
 
-        gpio_digital_write(PIN_LED_DBG2, HIGH);
+#ifdef PIN_SERIAL_ACTIVITY_LED
+        gpio_digital_write(PIN_SERIAL_ACTIVITY_LED, HIGH);
+#endif // PIN_SERIAL_ACTIVITY_LED
         uart_transmit(&uart_handle, (uint8_t *)ptr, len, 0xFFFF);
-        gpio_digital_write(PIN_LED_DBG2, LOW);
+#ifdef PIN_SERIAL_ACTIVITY_LED
+        gpio_digital_write(PIN_SERIAL_ACTIVITY_LED, LOW);
+#endif // PIN_SERIAL_ACTIVITY_LED
 
         return len;
     }

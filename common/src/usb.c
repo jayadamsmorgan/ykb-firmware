@@ -1,3 +1,7 @@
+#include "settings.h"
+
+#if defined(USB_ENABLED) && USB_ENABLED == 1
+
 #include "usb.h"
 
 #include "logging.h"
@@ -41,3 +45,5 @@ hal_err setup_usb() {
 
     return OK;
 }
+
+#endif // USB_ENABLED

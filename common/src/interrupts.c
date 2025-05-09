@@ -42,6 +42,8 @@ void DebugMon_Handler(void) { LOG_TRACE("DebugMon Handler triggered."); }
 
 void PendSV_Handler(void) { LOG_TRACE("PendSV Handler triggered"); }
 
+#if defined(USB_ENABLED) && USB_ENABLED == 1
 void USB_LP_IRQHandler(void) { HAL_PCD_IRQHandler(&hpcd_USB_FS); }
+#endif // USB_ENABLED
 
 #endif // ENABLE_DEFAULT_INTERRUPTS

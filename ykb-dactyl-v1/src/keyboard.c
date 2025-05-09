@@ -1,14 +1,6 @@
 #include "keyboard.h"
 
-#include "hal_systick.h"
-
-#include "usb/usbd_hid.h"
-
-#include "ykb_protocol.h"
-
-#include "eeprom.h"
 #include "error_handler.h"
-#include "interface_handler.h"
 #include "logging.h"
 #include "mappings.h"
 #include "memory_map.h"
@@ -22,14 +14,7 @@
 //
 // KB
 
-static kb_state_t kb_state = {
-    .settings =
-        {
-            .mode = KB_MODE_NORMAL,
-            .adc_sampling_time = KB_ADC_SAMPLING_DEFAULT,
-            .key_polling_rate = KB_DEFAULT_POLLING_RATE,
-        },
-};
+extern kb_state_t kb_state;
 
 __ALIGN_BEGIN static uint8_t mappings[KB_KEY_COUNT] __ALIGN_END = {
 
@@ -113,69 +98,6 @@ static mux_t muxes[3] = {
         .ctrls_amount = 4                 //
     },                                    //
 };
-
-typedef struct PACKED {
-
-    kb_state_t state;
-
-    uint16_t crc16;
-
-} kb_eeprom_t;
-
-#define EEPROM_KB_STATE_ADDR EEPROM_START_ADDRESS
-
-static inline void kb_save_to_eeprom() {
-
-    hal_err err;
-
-    kb_eeprom_t to_save = {
-        .state = kb_state,
-        .crc16 = ykb_crc16((uint8_t *)&kb_state, sizeof(kb_state_t))};
-
-    err = eeprom_clear();
-    if (err) {
-        LOG_ERROR("Unable to clear EEPROM: %d", err);
-        return;
-    }
-    LOG_TRACE("EEPROM cleared.");
-
-    err = eeprom_save(EEPROM_KB_STATE_ADDR, &to_save, sizeof(to_save));
-    if (err) {
-        LOG_ERROR("Unable to save to EEPROM: %d", err);
-        return;
-    }
-
-    LOG_DEBUG("Successfully saved to EEPROM.");
-}
-
-static inline bool kb_load_state_from_eeprom() {
-
-    hal_err err;
-
-    kb_eeprom_t to_get = {0};
-
-    LOG_TRACE("Loading state from EEPROM...");
-    err = eeprom_get(EEPROM_KB_STATE_ADDR, &to_get, sizeof(to_get));
-    if (err) {
-        LOG_ERROR("Unable to get from EEPROM: %d", err);
-        return false;
-    }
-    LOG_TRACE("Loaded state from EEPROM.");
-
-    uint16_t crc16 = ykb_crc16((uint8_t *)&to_get.state, sizeof(kb_state_t));
-    if (crc16 != to_get.crc16) {
-        LOG_DEBUG("Wrong CRC16 EEPROM signature (%d != %d), aborting", crc16,
-                  to_get.crc16);
-        return false;
-    }
-    LOG_TRACE("EEPROM CRC16 is correct.");
-
-    memcpy(&kb_state, &to_get.state, sizeof(kb_state_t));
-
-    LOG_DEBUG("Successfully retreived kb_state from EEPROM.");
-
-    return true;
-}
 
 static inline void kb_activate_mux_adc_channel(mux_t *mux) {
     adc_channel_config_t channel_config;
@@ -291,6 +213,8 @@ hal_err kb_init() {
 
     LOG_INFO("Setting up...");
 
+    kb_super_init();
+
     hal_err err;
 
     LOG_TRACE("Initializing MUXes...");
@@ -300,14 +224,6 @@ hal_err kb_init() {
         return err;
     }
     LOG_TRACE("MUXes init OK.");
-
-    LOG_TRACE("Initializing EEPROM...");
-    err = eeprom_init();
-    if (err) {
-        LOG_ERROR("Unable to init EEPROM. Error: %d", err);
-        return err;
-    }
-    LOG_TRACE("EEPROM initialized.");
 
     if (!kb_load_state_from_eeprom()) {
         LOG_DEBUG("Failed to load state from EEPROM. Loading defaults...");
@@ -322,132 +238,7 @@ hal_err kb_init() {
     return OK;
 }
 
-static uint8_t hid_buff[HID_BUFFER_SIZE];
-static uint8_t pressed_amount = 0;
-
-static uint8_t fn_buff[HID_BUFFER_SIZE - 2];
-static uint8_t fn_pressed_amount = 0;
-static bool fn_pressed;
-
-static uint8_t modifier_map[8] = {0x01, 0x02, 0x04, 0x08,
-                                  0x10, 0x20, 0x40, 0x80};
-
-static inline void kb_process_key(uint8_t key) {
-
-    if (key == KEY_FN) {
-        fn_pressed = true;
-        return;
-    }
-
-    if (key == KEY_LAYER) {
-        // TODO
-        return;
-    }
-
-    if (fn_pressed && fn_pressed_amount < HID_BUFFER_SIZE - 2) {
-
-        fn_buff[fn_pressed_amount] = key;
-        fn_pressed_amount++;
-
-        return;
-    }
-
-    if (key < KEY_LEFTCONTROL) {
-        // Regular
-
-        hid_buff[2 + pressed_amount] = key;
-        pressed_amount++;
-
-        return;
-    }
-
-    if (key < KEY_FN) {
-        // Modifiers
-
-        hid_buff[0] |= modifier_map[key - KEY_LEFTCONTROL];
-        return;
-    }
-}
-
-static inline void kb_process_fn_buff() {
-    // TODO
-
-    memset(fn_buff, 0, HID_BUFFER_SIZE - 2);
-    fn_pressed = false;
-    fn_pressed_amount = 0;
-}
-
 static mux_t *last_activated_mux = NULL;
-
-void kb_get_settings(uint8_t *buffer) {
-    if (!buffer) {
-        return;
-    }
-    memcpy(buffer, &kb_state.settings, sizeof(kb_settings_t));
-}
-
-void kb_get_mappings(uint8_t *buffer) {
-    if (!buffer) {
-        return;
-    }
-    memcpy(buffer, kb_state.mappings, sizeof(kb_state.mappings));
-}
-
-static ykb_protocol_t values_request;
-static ykb_protocol_t *values_request_ptr;
-
-void kb_request_values(ykb_protocol_t *protocol) {
-    memcpy(&values_request, protocol, sizeof(ykb_protocol_t));
-    values_request_ptr = &values_request;
-}
-
-void kb_get_thresholds(uint8_t *buffer) {
-    if (!buffer) {
-        return;
-    }
-    memcpy(buffer, kb_state.key_thresholds, sizeof(kb_state.key_thresholds));
-    memcpy(&buffer[sizeof(kb_state.key_thresholds)], kb_state.min_thresholds,
-           sizeof(kb_state.min_thresholds));
-    memcpy(&buffer[sizeof(kb_state.key_thresholds) +
-                   sizeof(kb_state.min_thresholds)],
-           kb_state.max_thresholds, sizeof(kb_state.max_thresholds));
-}
-
-void kb_set_settings(kb_settings_t *new_settings) {
-    if (!new_settings) {
-        return;
-    }
-    memcpy(&kb_state.settings, new_settings, sizeof(kb_settings_t));
-    kb_save_to_eeprom();
-}
-
-void kb_set_mappings(uint8_t *new_mappings) {
-    if (!new_mappings) {
-        return;
-    }
-    memcpy(kb_state.mappings, new_mappings, sizeof(kb_state.mappings));
-    kb_save_to_eeprom();
-}
-
-void kb_set_thresholds(uint8_t *new_thresholds) {
-    if (!new_thresholds) {
-        return;
-    }
-    memcpy(kb_state.key_thresholds, new_thresholds,
-           sizeof(kb_state.key_thresholds));
-    kb_save_to_eeprom();
-}
-
-void kb_calibrate(uint16_t *min_thresholds, uint16_t *max_thresholds) {
-    if (!min_thresholds || !max_thresholds) {
-        return;
-    }
-    memcpy(kb_state.min_thresholds, min_thresholds,
-           sizeof(kb_state.min_thresholds));
-    memcpy(kb_state.max_thresholds, max_thresholds,
-           sizeof(kb_state.max_thresholds));
-    kb_save_to_eeprom();
-}
 
 #ifdef DEBUG
 
@@ -456,11 +247,6 @@ bool previously_pressed_keys[KB_KEY_COUNT] = {false};
 #endif // DEBUG
 
 void kb_poll_normal() {
-
-    if (hid_buff[0] != KEY_NOKEY || hid_buff[2] != KEY_NOKEY) {
-        memset(hid_buff, 0, HID_BUFFER_SIZE);
-        pressed_amount = 0;
-    }
 
     uint8_t index = 0;
 
@@ -484,9 +270,6 @@ void kb_poll_normal() {
                 }
 #endif // DEBUG
                 kb_process_key(key);
-                if (pressed_amount >= HID_BUFFER_SIZE - 2) {
-                    return;
-                }
             }
 #ifdef DEBUG
             else {
@@ -495,10 +278,6 @@ void kb_poll_normal() {
 #endif // DEBUG
             index++;
         }
-    }
-
-    if (fn_pressed) {
-        kb_process_fn_buff();
     }
 }
 
@@ -541,34 +320,4 @@ void kb_poll_race() {
     if (pressed_key != KEY_NOKEY) {
         kb_process_key(pressed_key);
     }
-}
-
-extern USBD_HandleTypeDef hUsbDeviceFS;
-
-static uint32_t previous_poll_time = 0;
-
-void kb_handle() {
-
-    if (systick_get_tick() - previous_poll_time >= KB_DEFAULT_POLLING_RATE) {
-
-        switch (kb_state.settings.mode) {
-
-        case KB_MODE_NORMAL:
-            kb_poll_normal();
-            break;
-
-        case KB_MODE_RACE:
-            kb_poll_race();
-            break;
-        }
-    }
-
-    if (values_request_ptr) {
-        interface_handle_get_values_response(values_request_ptr,
-                                             kb_state.current_values);
-        values_request_ptr = NULL;
-    }
-
-    USBD_HID_SendReport(&hUsbDeviceFS, HID_EPIN_ADDR, hid_buff,
-                        HID_BUFFER_SIZE);
 }

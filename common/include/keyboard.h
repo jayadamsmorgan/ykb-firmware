@@ -3,6 +3,7 @@
 
 #include "hal_adc.h"
 #include "hal_err.h"
+#include "interface_handler.h"
 #include "settings.h"
 #include "ykb_protocol.h"
 
@@ -55,9 +56,17 @@ typedef struct {
 
 hal_err kb_init();
 
+void kb_poll_normal();
+void kb_poll_race();
+
+void kb_process_key(uint8_t key_code);
+
+bool kb_load_state_from_eeprom();
+void kb_super_init();
+
 void kb_get_settings(uint8_t *buffer);
 void kb_get_mappings(uint8_t *buffer);
-void kb_request_values(ykb_protocol_t *protocol);
+void kb_request_values(communication_source source, ykb_protocol_t *protocol);
 void kb_get_thresholds(uint8_t *buffer);
 
 void kb_set_settings(kb_settings_t *new_settings);

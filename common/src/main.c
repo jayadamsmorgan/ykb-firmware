@@ -13,6 +13,7 @@
 #include "boot0_handler.h"
 #include "clock.h"
 #include "crs.h"
+#include "eeprom.h"
 #include "error_handler.h"
 #include "fw_update_handler.h"
 #include "keyboard.h"
@@ -31,13 +32,18 @@ int main(void) {
     ERR_H(setup_logging());
 
     // Misc
+#if defined(BOOT0_HANDLER_ENABLED) && BOOT0_HANDLER_ENABLED == 1
     ERR_H(setup_boot0_handler());
+#endif // BOOT0_HANDLER_ENABLED
+    ERR_H(eeprom_init());
     ERR_H(setup_fw_update_handler());
 
     // Main
     ERR_H(setup_adc());
     ERR_H(kb_init());
+#if defined(USB_ENABLED) && USB_ENABLED == 1
     ERR_H(setup_usb());
+#endif // USB_ENABLED
 
     LOG_INFO("Successfully booted.");
 
