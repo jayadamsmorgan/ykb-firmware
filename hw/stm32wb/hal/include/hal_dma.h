@@ -155,16 +155,12 @@ typedef struct __dma_handle_t {
 
 hal_err dma_init(dma_handle_t *handle);
 
-static inline void dma1_enable() { SET_BIT(RCC->AHB1ENR, RCC_AHB1ENR_DMA1EN); }
+static inline void dma_enable() {
+    SET_BIT(DMAMUX1->CCR, DMA_CCR_EN);
+}
 
-static inline void dma2_enable() { SET_BIT(RCC->AHB1ENR, RCC_AHB1ENR_DMA2EN); }
-
-static inline void dma_enable() { SET_BIT(DMAMUX1->CCR, DMA_CCR_EN); }
-
-static inline void dma_disable() { CLEAR_BIT(DMAMUX1->CCR, DMA_CCR_EN); }
-
-static inline void dma_mux_enable() {
-    SET_BIT(RCC->AHB1ENR, RCC_AHB1ENR_DMAMUX1EN);
+static inline void dma_disable() {
+    CLEAR_BIT(DMAMUX1->CCR, DMA_CCR_EN);
 }
 
 hal_err dma_start_it(dma_handle_t *handle, uint32_t source_address,

@@ -41,6 +41,8 @@ typedef struct {
 
     kb_settings_t settings;
 
+    uint8_t layer;
+
     uint8_t key_thresholds[KB_KEY_COUNT];
 
     uint16_t min_thresholds[KB_KEY_COUNT];

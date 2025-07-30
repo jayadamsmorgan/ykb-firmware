@@ -11,6 +11,11 @@
 
 #define ERR_ADC_RB_TIMEOUT -1002
 
+#define ERR_HSEM_LOCK_ARGNULL -1502
+#define ERR_HSEM_LOCK_ALREADY_LOCKED -1503
+#define ERR_HSEM_UNLOCK_ARGNULL -1504
+#define ERR_HSEM_UNLOCK_ALREADY_UNLOCKED -1503
+
 #define ERR_H(ERR_CODE)                                                        \
     do {                                                                       \
         error_handler(ERR_CODE);                                               \

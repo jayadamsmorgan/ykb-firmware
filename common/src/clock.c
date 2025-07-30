@@ -2,6 +2,7 @@
 
 #include "hal_clock.h"
 #include "hal_flash.h"
+#include "hal_periph_clock.h"
 
 #include "logging.h"
 
@@ -20,6 +21,7 @@ inline hal_err setup_clock() {
     // f_R = 64MHz -> PLLR = 3
     clock_pll_config_t pll_config;
     pll_config.source = CLOCK_PLL_SOURCE_HSE;
+    pll_config.pllp = CLOCK_PLLP_NONE;
     pll_config.pllr = CLOCK_PLLR_3;
     pll_config.pllm = CLOCK_PLLM_4;
     pll_config.plln = CLOCK_PLLN_24;
@@ -28,6 +30,7 @@ inline hal_err setup_clock() {
 
     clock_pll_update_config(&pll_config);
     ASSERT(pll_config.source == CLOCK_PLL_SOURCE_HSE);
+    ASSERT(pll_config.pllp == CLOCK_PLLP_NONE);
     ASSERT(pll_config.pllr == CLOCK_PLLR_3);
     ASSERT(pll_config.pllm == CLOCK_PLLM_4);
     ASSERT(pll_config.plln == CLOCK_PLLN_24);
@@ -50,8 +53,7 @@ inline hal_err setup_clock() {
     LOG_TRACE("System clock source is PLL.");
 
     // Select PLLQ as 48MHz source for USB and RNG
-    clock_usb_rng_select_source(CLOCK_USB_RNG_SOURCE_PLLQ);
-    ASSERT(clock_usb_rng_get_source() == CLOCK_USB_RNG_SOURCE_PLLQ);
+    periph_clock_select_usb_source(PERIPHCLK_USB_PLLQ);
 
     // Update `SystemCoreClock` variable
     SystemCoreClockUpdate();

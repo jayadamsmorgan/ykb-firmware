@@ -8,6 +8,7 @@
 #include "hal_err.h"
 #include "hal_gpio.h"
 
+#include <stddef.h>
 #include <stdint.h>
 
 hal_err mux_init(const mux_t *const mux) {

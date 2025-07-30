@@ -55,9 +55,6 @@ typedef struct {
     crs_counter_reload_t reload;
 } crs_config_t;
 
-void crs_enable();
-bool crs_enabled();
-
 void crs_auto_trimming_enable();
 bool crs_auto_trimming_enabled();
 

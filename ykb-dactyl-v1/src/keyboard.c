@@ -263,9 +263,9 @@ void kb_poll_normal() {
                 uint8_t key = kb_state.mappings[index];
 #ifdef DEBUG
                 if (!previously_pressed_keys[index]) {
-                    LOG_DEBUG(
-                        "Key with index %d (HID code %d) pressed. MUX%d, CH%d",
-                        index, key, i + 1, j);
+                    LOG_DEBUG("Key with index %d (HID code 0x%02X) pressed. "
+                              "MUX%d, CH%d",
+                              index, key, i + 1, j);
                     previously_pressed_keys[index] = true;
                 }
 #endif // DEBUG
@@ -298,9 +298,9 @@ void kb_poll_race() {
                 uint8_t key = kb_state.mappings[index];
 #ifdef DEBUG
                 if (!previously_pressed_keys[index]) {
-                    LOG_DEBUG(
-                        "Key with index %d (HID code %d) pressed. MUX%d, CH%d",
-                        key, i + 1, j);
+                    LOG_DEBUG("Key with index %d (HID code 0x%02X) pressed. "
+                              "MUX%d, CH%d",
+                              index, key, i + 1, j);
                     previously_pressed_keys[index] = true;
                 }
 #endif // DEBUG

@@ -4,6 +4,7 @@
 #include "hal_systick.h"
 #include "keys.h"
 #include "logging.h"
+#include "mappings.h"
 #include "memory_map.h"
 #include "pinout.h"
 
@@ -40,6 +41,7 @@ kb_state_t kb_state = {
             .adc_sampling_time = KB_ADC_SAMPLING_DEFAULT,
             .key_polling_rate = KB_DEFAULT_POLLING_RATE,
         },
+    .layer = 0,
 };
 
 void kb_super_init() {
@@ -122,14 +124,20 @@ void kb_process_key(uint8_t key) {
         return;
     }
 
+#if LAYER_COUNT > 1
     if (key == KEY_LAYER) {
-        // TODO
+        kb_state.layer++;
+        if (kb_state.layer == LAYER_COUNT) {
+            kb_state.layer = 0;
+        }
         return;
     }
+#endif // LAYER_COUNT > 1
 
 #ifdef PIN_CAPSLOCK_LED
     if (key == KEY_CAPSLOCK) {
         toggle_capslock_led();
+        return;
     }
 #endif // PIN_CAPSLOCK_LED
 

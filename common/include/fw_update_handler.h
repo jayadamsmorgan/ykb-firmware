@@ -3,6 +3,7 @@
 
 #include "hal_err.h"
 
+#include <stddef.h>
 #include <stdint.h>
 
 typedef enum {

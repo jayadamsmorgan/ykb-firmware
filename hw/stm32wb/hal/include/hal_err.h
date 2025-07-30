@@ -1,9 +1,7 @@
 #ifndef HAL_ERR_H
 #define HAL_ERR_H
 
-#include <errno.h>
-
-typedef error_t hal_err;
+typedef int hal_err;
 
 #define OK 0
 
@@ -85,5 +83,14 @@ typedef error_t hal_err;
 #define ERR_FLASH_PROGRAM_NOTPROGRAMADDR -1208
 #define ERR_FLASH_PROGRAM_ADDRNOTFASTPROG -1209
 #define ERR_FLASH_PROGRAM_BUSY -1210
+
+#define ERR_PERIPHCLK_CONFIGPLLSAI1_OFF_TIMEOUT -1300
+#define ERR_PERIPHCLK_CONFIGPLLSAI1_ON_TIMEOUT -1301
+#define ERR_PERIPHCLK_RTCSEL_LSE_TIMEOUT -1302
+
+#define ERR_IPCC_INIT_BADARGS -1400
+
+#define ERR_HSEM_LOCK_FAIL -1500
+#define ERR_HSEM_LOCK_FAST_FAIL -1501
 
 #endif // HAL_ERR_H

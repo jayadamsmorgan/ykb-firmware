@@ -3,6 +3,7 @@
 
 #include "hal_err.h"
 
+#include <stddef.h>
 #include <stdint.h>
 
 #define ERR_EEPROM_INIT_BADPAGERANGE -1301

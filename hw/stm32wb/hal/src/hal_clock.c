@@ -108,18 +108,6 @@ clock_hclk2_prescaler clock_hclk2_get_prescaler() {
     return READ_BITS(RCC->EXTCFGR, RCC_EXTCFGR_C2HPRE_Pos, BITMASK_4BIT);
 }
 
-void clock_usb_rng_select_source(clock_usb_rng_source source) {
-    MODIFY_BITS(RCC->CCIPR, RCC_CCIPR_CLK48SEL_Pos, source, BITMASK_2BIT);
-}
-
-clock_usb_rng_source clock_usb_rng_get_source() {
-    return READ_BITS(RCC->CCIPR, RCC_CCIPR_CLK48SEL_Pos, BITMASK_2BIT);
-}
-
-void clock_usb_enable() { SET_BIT(RCC->APB1ENR1, RCC_APB1ENR1_USBEN); }
-
-void clock_usb_disable() { CLEAR_BIT(RCC->APB1ENR1, RCC_APB1ENR1_USBEN); }
-
 // HSE
 
 void clock_hse_enable() {
@@ -163,11 +151,15 @@ void clock_pll_config(const clock_pll_config_t *config) {
     uint32_t pll_cfgr = 0;
 
     if (config->pllq != CLOCK_PLLQ_NONE) {
-        pll_cfgr |= RCC_PLLCFGR_PLLQEN | config->pllq << RCC_PLLCFGR_PLLQ_Pos;
+        pll_cfgr |= RCC_PLLCFGR_PLLQEN | (config->pllq << RCC_PLLCFGR_PLLQ_Pos);
     }
 
     if (config->pllr != CLOCK_PLLR_NONE) {
-        pll_cfgr |= RCC_PLLCFGR_PLLREN | config->pllr << RCC_PLLCFGR_PLLR_Pos;
+        pll_cfgr |= RCC_PLLCFGR_PLLREN | (config->pllr << RCC_PLLCFGR_PLLR_Pos);
+    }
+
+    if (config->pllp != CLOCK_PLLP_NONE) {
+        pll_cfgr |= RCC_PLLCFGR_PLLPEN | (config->pllp << RCC_PLLCFGR_PLLP_Pos);
     }
 
     pll_cfgr |= config->plln << RCC_PLLCFGR_PLLN_Pos;

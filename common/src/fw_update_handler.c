@@ -144,8 +144,9 @@ fw_update_source fw_get_update_source() { return fw_source; }
 fw_update_source bl_get_update_source() { return bl_source; }
 
 static inline void fw_update() {
-    LOG_INFO("Putting firmware update in staging...", fw_update_size,
-             fw_source);
+    LOG_INFO("Putting firmware update in staging...");
+    LOG_INFO("Firmware size: %zu", fw_update_size);
+    LOG_INFO("Firmware source: %d", fw_source);
 
     hal_err err;
 
@@ -175,10 +176,10 @@ static inline void fw_update() {
     LOG_TRACE("Start flashing staging (%d blocks)...", block_size);
     for (size_t i = 0; i < block_size; i++) {
         memcpy(&data, &fw_update_buffer[i * 8], sizeof(uint64_t));
-        uint32_t block = FW_STAGING_ADDRESS + (sizeof(uint64_t) * i);
+        unsigned long block = FW_STAGING_ADDRESS + (sizeof(uint64_t) * i);
         err = flash_program(FLASH_TYPEPROGRAM_DOUBLEWORD, block, data);
         if (err) {
-            LOG_ERROR("Unable to write block %d to staging: Error %d", block,
+            LOG_ERROR("Unable to write block %lu to staging: Error %d", block,
                       err);
             fw_update_cleanup();
             return;
@@ -241,11 +242,11 @@ static inline void bl_update() {
     LOG_TRACE("Flashing new bootloader (%d blocks)...", block_size);
     for (size_t i = 0; i < block_size; i++) {
         memcpy(&data, &bl_update_buffer[i * 8], sizeof(uint64_t));
-        uint32_t block = FLASH_BASE + (sizeof(uint64_t) * i);
+        unsigned long block = FLASH_BASE + (sizeof(uint64_t) * i);
         err = flash_program(FLASH_TYPEPROGRAM_DOUBLEWORD, block, data);
         if (err) {
-            LOG_ERROR("Unable to write block %d to bootloader: Error %d", block,
-                      err);
+            LOG_ERROR("Unable to write block %lu to bootloader: Error %d",
+                      block, err);
             bl_update_cleanup();
             return;
         }

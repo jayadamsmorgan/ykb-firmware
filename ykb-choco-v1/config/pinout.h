@@ -1,0 +1,34 @@
+#ifndef CONFIG_PINOUT_H
+#define CONFIG_PINOUT_H
+
+#include "hal_gpio.h"
+
+#define PIN_DEBUG_UART_RX PC0
+#define PIN_DEBUG_UART_TX PC1
+
+#define PIN_HALL_ADC PA3
+
+#define PIN_HALL_EN_1 PB15
+#define PIN_HALL_EN_2 PD0
+#define PIN_HALL_EN_3 PA1
+#define PIN_HALL_EN_4 PB2
+#define PIN_HALL_EN_5 PC5
+#define PIN_HALL_EN_6 PC4
+#define PIN_HALL_EN_7 PA8
+#define PIN_HALL_EN_8 PC6
+#define PIN_HALL_EN_9 PD1
+#define PIN_HALL_EN_10 PA2
+#define PIN_HALL_EN_11 PA15
+#define PIN_HALL_EN_12 PB4
+#define PIN_HALL_EN_13 PA4
+#define PIN_HALL_EN_14 PC10
+#define PIN_HALL_EN_15 PB5
+#define PIN_HALL_EN_16 PA5
+#define PIN_HALL_EN_17 PC11
+#define PIN_HALL_EN_18 PB6
+#define PIN_HALL_EN_19 PA6
+#define PIN_HALL_EN_20 PC12
+#define PIN_HALL_EN_21 PB7
+#define PIN_HALL_EN_22 PA7
+
+#endif // CONFIG_PINOUT_H

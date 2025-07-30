@@ -5,6 +5,7 @@
 #include "logging.h"
 #include "pinout.h"
 #include "settings.h"
+#include "utils/utils.h"
 
 #ifdef PIN_ERROR_HANDLER_LED
 static const gpio_pin_t led_dbg = PIN_ERROR_HANDLER_LED;
@@ -53,6 +54,7 @@ void error_handler(hal_err error_code) {
         }
     }
 #else  // !PIN_ERROR_HANDLER_LED
+    UNUSED(error_code);
     while (true) {
     }
 #endif // PIN_ERROR_HANDLER_LED

@@ -173,6 +173,41 @@ typedef enum {
 } clock_plln;
 
 typedef enum {
+    CLOCK_PLLP_NONE = 0,
+    CLOCK_PLLP_2 = 1,
+    CLOCK_PLLP_3 = 2,
+    CLOCK_PLLP_4 = 3,
+    CLOCK_PLLP_5 = 4,
+    CLOCK_PLLP_6 = 5,
+    CLOCK_PLLP_7 = 6,
+    CLOCK_PLLP_8 = 7,
+    CLOCK_PLLP_9 = 8,
+    CLOCK_PLLP_10 = 9,
+    CLOCK_PLLP_11 = 10,
+    CLOCK_PLLP_12 = 11,
+    CLOCK_PLLP_13 = 12,
+    CLOCK_PLLP_14 = 13,
+    CLOCK_PLLP_15 = 14,
+    CLOCK_PLLP_16 = 15,
+    CLOCK_PLLP_17 = 16,
+    CLOCK_PLLP_18 = 17,
+    CLOCK_PLLP_19 = 18,
+    CLOCK_PLLP_20 = 19,
+    CLOCK_PLLP_21 = 20,
+    CLOCK_PLLP_22 = 21,
+    CLOCK_PLLP_23 = 22,
+    CLOCK_PLLP_24 = 23,
+    CLOCK_PLLP_25 = 24,
+    CLOCK_PLLP_26 = 25,
+    CLOCK_PLLP_27 = 26,
+    CLOCK_PLLP_28 = 27,
+    CLOCK_PLLP_29 = 28,
+    CLOCK_PLLP_30 = 29,
+    CLOCK_PLLP_31 = 30,
+    CLOCK_PLLP_32 = 31,
+} clock_pllp;
+
+typedef enum {
     CLOCK_PLLQ_NONE = 0U,
     CLOCK_PLLQ_2 = 1U,
     CLOCK_PLLQ_3 = 2U,
@@ -199,6 +234,7 @@ typedef struct {
     clock_pll_source source;
 
     clock_pllm pllm;
+    clock_pllp pllp;
     clock_plln plln;
     clock_pllq pllq;
     clock_pllr pllr;
@@ -245,19 +281,224 @@ uint32_t clock_get_hclk_frequency();
 uint32_t clock_get_pclk1_frequency();
 uint32_t clock_get_pclk2_frequency();
 
-void clock_usb_rng_select_source(clock_usb_rng_source source);
-clock_usb_rng_source clock_usb_rng_get_source();
-
-void clock_usb_enable();
-void clock_usb_disable();
-
 // HSE
 void clock_hse_enable();
 
 // PLL
-
 void clock_pll_config(const clock_pll_config_t *config);
 void clock_pll_update_config(clock_pll_config_t *config);
 void clock_pll_enable();
+
+// USB
+static inline void clock_usb_enable() {
+    SET_BIT(RCC->APB1ENR1, RCC_APB1ENR1_USBEN);
+}
+
+static inline void clock_usb_disable() {
+    CLEAR_BIT(RCC->APB1ENR1, RCC_APB1ENR1_USBEN);
+}
+
+static inline bool clock_usb_enabled() {
+    return READ_BIT(RCC->APB1ENR1, RCC_APB1ENR1_USBEN);
+}
+
+// CRS
+static inline void clock_crs_enable() {
+    SET_BIT(RCC->APB1ENR1, RCC_APB1ENR1_CRSEN);
+}
+
+static inline void clock_crs_disable() {
+    CLEAR_BIT(RCC->APB1ENR1, RCC_APB1ENR1_CRSEN);
+}
+
+static inline bool clock_crs_enabled() {
+    return READ_BIT(RCC->APB1ENR1, RCC_APB1ENR1_CRSEN);
+}
+
+// ADC
+static inline void clock_adc_enable() {
+    SET_BIT(RCC->AHB2ENR, RCC_AHB2ENR_ADCEN);
+}
+
+static inline void clock_adc_disable() {
+    CLEAR_BIT(RCC->AHB2ENR, RCC_AHB2ENR_ADCEN);
+}
+
+static inline bool clock_adc_enabled() {
+    return READ_BIT(RCC->AHB2ENR, RCC_AHB2ENR_ADCEN);
+}
+
+// DMA1
+static inline void clock_dma1_enable() {
+    SET_BIT(RCC->AHB1ENR, RCC_AHB1ENR_DMA1EN);
+}
+
+static inline void clock_dma1_disable() {
+    CLEAR_BIT(RCC->AHB1ENR, RCC_AHB1ENR_DMA1EN);
+}
+
+static inline bool clock_dma1_enabled() {
+    return READ_BIT(RCC->AHB1ENR, RCC_AHB1ENR_DMA1EN);
+}
+
+// DMA2
+static inline void clock_dma2_enable() {
+    SET_BIT(RCC->AHB1ENR, RCC_AHB1ENR_DMA2EN);
+}
+
+static inline void clock_dma2_disable() {
+    CLEAR_BIT(RCC->AHB1ENR, RCC_AHB1ENR_DMA2EN);
+}
+
+static inline bool clock_dma2_enabled() {
+    return READ_BIT(RCC->AHB1ENR, RCC_AHB1ENR_DMA2EN);
+}
+
+// DMAMUX
+static inline void clock_dmamux_enable() {
+    SET_BIT(RCC->AHB1ENR, RCC_AHB1ENR_DMAMUX1EN);
+}
+
+static inline void clock_dmamux_disable() {
+    CLEAR_BIT(RCC->AHB1ENR, RCC_AHB1ENR_DMAMUX1EN);
+}
+
+static inline bool clock_dmamux_enabled() {
+    return READ_BIT(RCC->AHB1ENR, RCC_AHB1ENR_DMAMUX1EN);
+}
+
+// GPIO
+
+static inline void clock_gpioa_enable() {
+    SET_BIT(RCC->AHB2ENR, RCC_AHB2ENR_GPIOAEN);
+}
+
+static inline void clock_gpioa_disable() {
+    CLEAR_BIT(RCC->AHB2ENR, RCC_AHB2ENR_GPIOAEN);
+}
+
+static inline bool clock_gpioa_enabled() {
+    return READ_BIT(RCC->AHB2ENR, RCC_AHB2ENR_GPIOAEN);
+}
+
+static inline void clock_gpiob_enable() {
+    SET_BIT(RCC->AHB2ENR, RCC_AHB2ENR_GPIOBEN);
+}
+
+static inline void clock_gpiob_disable() {
+    CLEAR_BIT(RCC->AHB2ENR, RCC_AHB2ENR_GPIOBEN);
+}
+
+static inline bool clock_gpiob_enabled() {
+    return READ_BIT(RCC->AHB2ENR, RCC_AHB2ENR_GPIOBEN);
+}
+
+static inline void clock_gpioc_enable() {
+    SET_BIT(RCC->AHB2ENR, RCC_AHB2ENR_GPIOCEN);
+}
+
+static inline void clock_gpioc_disable() {
+    CLEAR_BIT(RCC->AHB2ENR, RCC_AHB2ENR_GPIOCEN);
+}
+
+static inline bool clock_gpioc_enabled() {
+    return READ_BIT(RCC->AHB2ENR, RCC_AHB2ENR_GPIOCEN);
+}
+
+static inline void clock_gpiod_enable() {
+    SET_BIT(RCC->AHB2ENR, RCC_AHB2ENR_GPIODEN);
+}
+
+static inline void clock_gpiod_disable() {
+    CLEAR_BIT(RCC->AHB2ENR, RCC_AHB2ENR_GPIODEN);
+}
+
+static inline bool clock_gpiod_enabled() {
+    return READ_BIT(RCC->AHB2ENR, RCC_AHB2ENR_GPIODEN);
+}
+
+static inline void clock_gpioe_enable() {
+    SET_BIT(RCC->AHB2ENR, RCC_AHB2ENR_GPIOEEN);
+}
+
+static inline void clock_gpioe_disable() {
+    CLEAR_BIT(RCC->AHB2ENR, RCC_AHB2ENR_GPIOEEN);
+}
+
+static inline bool clock_gpioe_enabled() {
+    return READ_BIT(RCC->AHB2ENR, RCC_AHB2ENR_GPIOEEN);
+}
+
+static inline void clock_gpioh_enable() {
+    SET_BIT(RCC->AHB2ENR, RCC_AHB2ENR_GPIOHEN);
+}
+
+static inline void clock_gpioh_disable() {
+    CLEAR_BIT(RCC->AHB2ENR, RCC_AHB2ENR_GPIOHEN);
+}
+
+static inline bool clock_gpioh_enabled() {
+    return READ_BIT(RCC->AHB2ENR, RCC_AHB2ENR_GPIOHEN);
+}
+
+// HSEM
+static inline void clock_hsem_enable() {
+    SET_BIT(RCC->AHB3ENR, RCC_AHB3ENR_HSEMEN);
+}
+
+static inline void clock_hsem_disable() {
+    CLEAR_BIT(RCC->AHB3ENR, RCC_AHB3ENR_HSEMEN);
+}
+
+static inline bool clock_hsem_enabled() {
+    return READ_BIT(RCC->AHB3ENR, RCC_AHB3ENR_HSEMEN);
+}
+
+// IPCC
+static inline void clock_ipcc_enable() {
+    SET_BIT(RCC->AHB3ENR, RCC_AHB3ENR_IPCCEN);
+    // delay after turning clocks on
+    __IO uint32_t tmp = READ_BIT(RCC->AHB3ENR, RCC_AHB3ENR_IPCCEN);
+    (void)tmp;
+}
+
+static inline void clock_ipcc_disable() {
+    CLEAR_BIT(RCC->AHB3ENR, RCC_AHB3ENR_IPCCEN);
+    // delay after turning clocks off
+    __IO uint32_t tmp = READ_BIT(RCC->AHB3ENR, RCC_AHB3ENR_IPCCEN);
+    (void)tmp;
+}
+
+static inline bool clock_ipcc_enabled() {
+    return READ_BIT(RCC->AHB3ENR, RCC_AHB3ENR_IPCCEN);
+}
+
+// USART1
+
+static inline void clock_usart1_enable() {
+    SET_BIT(RCC->APB2ENR, RCC_APB2ENR_USART1EN);
+}
+
+static inline void clock_usart1_disable() {
+    CLEAR_BIT(RCC->APB2ENR, RCC_APB2ENR_USART1EN);
+}
+
+static inline bool clock_usart1_enabled() {
+    return READ_BIT(RCC->APB2ENR, RCC_APB2ENR_USART1EN);
+}
+
+// LPUART1
+
+static inline void clock_lpuart1_enable() {
+    SET_BIT(RCC->APB1ENR2, RCC_APB1ENR2_LPUART1EN);
+}
+
+static inline void clock_lpuart1_disable() {
+    CLEAR_BIT(RCC->APB1ENR2, RCC_APB1ENR2_LPUART1EN);
+}
+
+static inline bool clock_lpuart1_enabled() {
+    return READ_BIT(RCC->APB1ENR2, RCC_APB1ENR2_LPUART1EN);
+}
 
 #endif // HAL_CLOCK_H

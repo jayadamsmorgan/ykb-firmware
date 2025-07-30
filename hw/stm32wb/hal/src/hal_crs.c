@@ -3,10 +3,6 @@
 #include "hal_bits.h"
 #include "stm32wbxx.h"
 
-void crs_enable() { SET_BIT(RCC->APB1ENR1, RCC_APB1ENR1_CRSEN); }
-
-bool crs_enabled() { return READ_BIT(RCC->APB1ENR1, RCC_APB1ENR1_CRSEN); }
-
 void crs_config(const crs_config_t *config) {
     MODIFY_BITS(CRS->CFGR, CRS_CFGR_SYNCPOL_Pos, config->polarity,
                 BITMASK_1BIT);
@@ -35,12 +31,16 @@ hal_err crs_set_smooth_trimming(crs_smooth_trim_t trim) {
     return OK;
 }
 
-void crs_auto_trimming_enable() { SET_BIT(CRS->CR, CRS_CR_AUTOTRIMEN); }
+void crs_auto_trimming_enable() {
+    SET_BIT(CRS->CR, CRS_CR_AUTOTRIMEN);
+}
 bool crs_auto_trimming_enabled() {
     return READ_BIT(CRS->CR, CRS_CR_AUTOTRIMEN);
 }
 
-void crs_frequency_error_counter_enable() { SET_BIT(CRS->CR, CRS_CR_CEN); }
+void crs_frequency_error_counter_enable() {
+    SET_BIT(CRS->CR, CRS_CR_CEN);
+}
 bool crs_frequency_error_counter_enabled() {
     return READ_BIT(CRS->CR, CRS_CR_CEN);
 }

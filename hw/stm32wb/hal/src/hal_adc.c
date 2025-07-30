@@ -37,7 +37,7 @@ hal_err adc_init(const adc_init_t *init) {
     if (handle->state == HAL_ADC_STATE_RESET) {
 
         // Enable ADC clock
-        SET_BIT(RCC->AHB2ENR, RCC_AHB2ENR_ADCEN);
+        clock_adc_enable();
 
         // Enable ADC interrupt
         cortex_nvic_set_priority(ADC1_IRQn, 0, 0);
@@ -924,7 +924,9 @@ __weak void ADC1_IRQHandler(void) {
     }
 }
 
-adc_handle_t *adc_get_handle() { return (adc_handle_t *)&hal_adc_handle; }
+adc_handle_t *adc_get_handle() {
+    return (adc_handle_t *)&hal_adc_handle;
+}
 
 void adc_link_dma(dma_handle_t *handle) {
     hal_adc_handle.dma_handle = handle;

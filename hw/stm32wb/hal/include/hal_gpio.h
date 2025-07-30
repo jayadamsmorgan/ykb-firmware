@@ -485,6 +485,15 @@ static const gpio_pin_t PD0 = {
     .af8_feature = GPIO_AF8_FEATURE_NONE,
 };
 
+static const gpio_pin_t PD1 = {
+    .gpio = GPIOD,                //
+    .num = 0,                     //
+    .adc_chan = ADC_CHANNEL_NONE, //
+    .af4_feature = GPIO_AF4_FEATURE_NONE,
+    .af7_feature = GPIO_AF7_FEATURE_NONE,
+    .af8_feature = GPIO_AF8_FEATURE_NONE,
+};
+
 static const gpio_pin_t PE4 = {
     .gpio = GPIOE,                //
     .num = 4,                     //

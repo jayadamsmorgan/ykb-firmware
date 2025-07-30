@@ -51,7 +51,7 @@ typedef enum {
 } log_level;
 
 void _log(log_level level, const char *file_name, const int line,
-          const char *format, ...);
+          const char *format, ...) __attribute__((format(printf, 4, 5)));
 
 hal_err setup_logging();
 

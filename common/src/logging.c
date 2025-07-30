@@ -10,11 +10,6 @@
 #endif // DEBUG_UART_ENABLED
 
 #if defined(DEBUG_SWO_ENABLED) && DEBUG_SWO_ENABLED == 1
-
-#ifndef DEBUG_SWO_BAUDRATE
-#define DEBUG_SWO_BAUDRATE 2000000
-#endif // DEBUG_SWO_BAUDRATE
-
 #define LOGGING_BACKEND_SWO
 #endif // DEBUG_SWO_ENABLED
 
@@ -156,55 +151,6 @@ static inline hal_err setup_uart_logging() {
 }
 #endif // LOGGING_BACKEND_UART
 
-#ifdef LOGGING_BACKEND_SWO
-
-static bool swo_available = false;
-void swoInit() {}
-static inline hal_err setup_swo_logging() {
-    gpio_pin_t swd_pins[3] = {
-        PA13,
-        PA14,
-        PB3,
-    };
-    for (size_t i = 0; i < 3; i++) {
-        gpio_set_mode(swd_pins[i], GPIO_MODE_AF);
-        gpio_set_speed(swd_pins[i], GPIO_SPEED_HIGH);
-        gpio_set_af_mode(swd_pins[i], GPIO_AF_MODE_0);
-        gpio_set_pupd(swd_pins[i], GPIO_PUPD_NONE);
-    }
-
-    uint32_t swo_prescaler = (SystemCoreClock / DEBUG_SWO_BAUDRATE) - 1u;
-
-    SET_BIT(DCB->DEMCR, DCB_DEMCR_TRCENA_Msk);
-
-    SET_BIT(DBGMCU->CR, DBGMCU_CR_TRACE_IOEN | DBGMCU_CR_DBG_STANDBY |
-                            DBGMCU_CR_DBG_STOP | DBGMCU_CR_DBG_STOP);
-
-    TPIU->SPPR = 0x00000002u; // Selected PIN Protocol Register: Select which
-                              // protocol to use for trace output (2: SWO)
-
-    TPIU->ACPR = swo_prescaler; // Async Clock Prescaler Register: Scale the
-                                // baud rate of the asynchronous output
-    ITM->LAR = 0xC5ACCE55u; // ITM Lock Access Register: C5ACCE55 enables more
-                            // write access to Control Register 0xE00 :: 0xFFC
-    ITM->TCR = 0x0001000Du; // ITM Trace Control Register
-    ITM->TPR = ITM_TPR_PRIVMASK_Msk; // ITM Trace Privilege Register: All
-                                     // stimulus ports
-    ITM->TER = 1;             // ITM Trace Enable Register: Enabled tracing on
-                              // stimulus ports. One bit per stimulus port.
-    DWT->CTRL = 0x400003FEu;  // Data Watchpoint and Trace Register
-    TPIU->FFCR = 0x00000100u; // Formatter and Flush Control Register
-
-    // ITM/SWO works only if enabled from debugger.
-    // If ITM stimulus 0 is not free, don't try to send data to SWO
-    if (ITM->PORT[0].u8 == 1) {
-        swo_available = true;
-    }
-
-    return OK;
-}
-#endif // LOGGING_BACKEND_SWO
-
 #ifdef LOGGING_BACKEND_UART
 
 static inline void write_uart(char *ptr, int len) {
@@ -237,6 +183,7 @@ int _write(int file, char *ptr, int len) {
 #ifdef LOGGING_BACKEND_SWO
         write_swo(ptr, len);
 #endif // LOGGING_BACKEND_SWO
+        return len;
     }
 
     if (log_str_queue_index >= LOG_STR_QUEUE_LEN) {
@@ -260,15 +207,12 @@ hal_err setup_logging() {
     setup_uart_logging();
 #endif // LOGGING_BACKEND_UART
 
-#ifdef LOGGING_BACKEND_SWO
-    setup_swo_logging();
-#endif // LOGGING_BACKEND_SWO
-
     if (log_str_queue_index > 0) {
 
         for (uint8_t i = 0; i < log_str_queue_index; i++) {
             string_to_write str = log_str_queue[i];
-            _write(0, str.data, str.len);
+            write_uart(str.data, str.len);
+            write_swo(str.data, str.len);
         }
 
         log_str_queue_index = 0;

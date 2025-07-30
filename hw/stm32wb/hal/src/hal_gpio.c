@@ -1,6 +1,7 @@
 #include "hal_gpio.h"
 
 #include "hal_bits.h"
+#include "hal_clock.h"
 #include "hal_cortex.h"
 #include "hal_err.h"
 #include "stm32wbxx.h"
@@ -9,33 +10,33 @@
 
 void gpio_turn_on_port(gpio_t *port) {
     if (port == GPIOA) {
-        SET_BIT(RCC->AHB2ENR, RCC_AHB2ENR_GPIOAEN);
+        clock_gpioa_enable();
     } else if (port == GPIOB) {
-        SET_BIT(RCC->AHB2ENR, RCC_AHB2ENR_GPIOBEN);
+        clock_gpiob_enable();
     } else if (port == GPIOC) {
-        SET_BIT(RCC->AHB2ENR, RCC_AHB2ENR_GPIOCEN);
+        clock_gpioc_enable();
     } else if (port == GPIOD) {
-        SET_BIT(RCC->AHB2ENR, RCC_AHB2ENR_GPIODEN);
+        clock_gpiod_enable();
     } else if (port == GPIOE) {
-        SET_BIT(RCC->AHB2ENR, RCC_AHB2ENR_GPIOEEN);
+        clock_gpioe_enable();
     } else if (port == GPIOH) {
-        SET_BIT(RCC->AHB2ENR, RCC_AHB2ENR_GPIOHEN);
+        clock_gpioh_enable();
     }
 }
 
 void gpio_turn_off_port(gpio_t *port) {
     if (port == GPIOA) {
-        CLEAR_BIT(RCC->AHB2ENR, RCC_AHB2ENR_GPIOAEN);
+        clock_gpioa_disable();
     } else if (port == GPIOB) {
-        CLEAR_BIT(RCC->AHB2ENR, RCC_AHB2ENR_GPIOBEN);
+        clock_gpiob_disable();
     } else if (port == GPIOC) {
-        CLEAR_BIT(RCC->AHB2ENR, RCC_AHB2ENR_GPIOCEN);
+        clock_gpioc_disable();
     } else if (port == GPIOD) {
-        CLEAR_BIT(RCC->AHB2ENR, RCC_AHB2ENR_GPIODEN);
+        clock_gpiod_disable();
     } else if (port == GPIOE) {
-        CLEAR_BIT(RCC->AHB2ENR, RCC_AHB2ENR_GPIOEEN);
+        clock_gpioe_disable();
     } else if (port == GPIOH) {
-        CLEAR_BIT(RCC->AHB2ENR, RCC_AHB2ENR_GPIOHEN);
+        clock_gpioh_disable();
     }
 }
 

@@ -5,11 +5,13 @@
 #include "hal_clock.h"
 #include "hal_err.h"
 #include "hal_gpio.h"
+#include "hal_periph_clock.h"
 #include "hal_systick.h"
 
 #include "stm32wbxx.h"
 
 #include <stdint.h>
+#include <stdlib.h>
 
 //
 // Common
@@ -32,7 +34,7 @@ static hal_err uart_init_msp(volatile uart_handle_t *handle) {
 
             return ERR_UART_INIT_INV_PINCONFIG;
         }
-        SET_BIT(RCC->APB1ENR2, RCC_APB1ENR2_LPUART1EN);
+        clock_lpuart1_enable();
         mode = GPIO_AF_MODE_8;
 
     } else if (handle->instance == USART1) {
@@ -42,7 +44,7 @@ static hal_err uart_init_msp(volatile uart_handle_t *handle) {
 
             return ERR_UART_INIT_INV_PINCONFIG;
         }
-        SET_BIT(RCC->APB2ENR, RCC_APB2ENR_USART1EN);
+        clock_usart1_enable();
         mode = GPIO_AF_MODE_7;
 
     } else {
@@ -117,67 +119,24 @@ static inline void anyuart_advanced_config(volatile uart_handle_t *handle) {
     }
 }
 
-typedef enum {
-    UART_CLOCK_SOURCE_UNDEFINED,
-    UART_CLOCK_SOURCE_LSE,
-    UART_CLOCK_SOURCE_HSI,
-    UART_CLOCK_SOURCE_PCLK1,
-    UART_CLOCK_SOURCE_PCLK2,
-    UART_CLOCK_SOURCE_SYSCLK,
-} uart_clock_source;
-
-static inline uart_clock_source
-anyuart_get_clock_source(volatile uart_handle_t *handle) {
-
-    if (handle->instance == LPUART1) {
-        switch (READ_BITS(RCC->CCIPR, RCC_CCIPR_LPUART1SEL_Pos, BITMASK_2BIT)) {
-        case 0U:
-            return UART_CLOCK_SOURCE_PCLK1;
-        case 1U:
-            return UART_CLOCK_SOURCE_SYSCLK;
-        case 2U:
-            return UART_CLOCK_SOURCE_HSI;
-        case 3U:
-            return UART_CLOCK_SOURCE_LSE;
-        default:
-            return UART_CLOCK_SOURCE_UNDEFINED;
-        }
-    }
-    if (handle->instance == USART1) {
-        switch (READ_BITS(RCC->CCIPR, RCC_CCIPR_USART1SEL_Pos, BITMASK_2BIT)) {
-        case 0U:
-            return UART_CLOCK_SOURCE_PCLK2;
-        case 1U:
-            return UART_CLOCK_SOURCE_SYSCLK;
-        case 2U:
-            return UART_CLOCK_SOURCE_HSI;
-        case 3U:
-            return UART_CLOCK_SOURCE_LSE;
-        default:
-            return UART_CLOCK_SOURCE_UNDEFINED;
-        }
-    }
-
-    return UART_CLOCK_SOURCE_UNDEFINED;
-}
-
 static inline hal_err lpuart_config_brr(volatile uart_handle_t *handle) {
 
-    uart_clock_source clock_source = anyuart_get_clock_source(handle);
+    periph_clock_uart_source clock_source = periph_clock_get_lpuart1_source();
+
     uint32_t pclk;
 
     switch (clock_source) {
-    case UART_CLOCK_SOURCE_LSE:
-        pclk = LSE_VALUE;
-        break;
-    case UART_CLOCK_SOURCE_HSI:
-        pclk = HSI_VALUE;
-        break;
-    case UART_CLOCK_SOURCE_PCLK1:
+    case PERIPHCLK_UART_CLKSOURCE_PCLK:
         pclk = clock_get_pclk1_frequency();
         break;
-    case UART_CLOCK_SOURCE_SYSCLK:
+    case PERIPHCLK_UART_CLKSOURCE_SYSCLK:
         pclk = clock_get_system_clock();
+        break;
+    case PERIPHCLK_UART_CLKSOURCE_HSI:
+        pclk = HSI_VALUE;
+        break;
+    case PERIPHCLK_UART_CLKSOURCE_LSE:
+        pclk = LSE_VALUE;
         break;
     default:
         return ERR_UART_CONFIG_INV_CS;
@@ -211,21 +170,22 @@ static inline hal_err lpuart_config_brr(volatile uart_handle_t *handle) {
 
 static inline hal_err uart_config_brr(volatile uart_handle_t *handle) {
 
-    uart_clock_source clock_source = anyuart_get_clock_source(handle);
+    periph_clock_uart_source clock_source = periph_clock_get_usart1_source();
+
     uint32_t pclk;
 
     switch (clock_source) {
-    case UART_CLOCK_SOURCE_LSE:
-        pclk = LSE_VALUE;
-        break;
-    case UART_CLOCK_SOURCE_HSI:
-        pclk = HSI_VALUE;
-        break;
-    case UART_CLOCK_SOURCE_PCLK2:
+    case PERIPHCLK_UART_CLKSOURCE_PCLK:
         pclk = clock_get_pclk2_frequency();
         break;
-    case UART_CLOCK_SOURCE_SYSCLK:
+    case PERIPHCLK_UART_CLKSOURCE_SYSCLK:
         pclk = clock_get_system_clock();
+        break;
+    case PERIPHCLK_UART_CLKSOURCE_HSI:
+        pclk = HSI_VALUE;
+        break;
+    case PERIPHCLK_UART_CLKSOURCE_LSE:
+        pclk = LSE_VALUE;
         break;
     default:
         return ERR_UART_CONFIG_INV_CS;

@@ -1,5 +1,6 @@
 #include "crs.h"
 
+#include "hal_clock.h"
 #include "hal_crs.h"
 
 #include "logging.h"
@@ -10,8 +11,8 @@ hal_err setup_crs() {
 
     LOG_DEBUG("Setting up...");
 
-    crs_enable();
-    ASSERT(crs_enabled());
+    clock_crs_enable();
+    ASSERT(clock_crs_enabled());
 
     crs_config_t config;
     config.source = CRS_SYNC_SOURCE_USB;

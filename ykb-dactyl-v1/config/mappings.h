@@ -5,6 +5,8 @@
 
 // Mappings:
 
+#define LAYER_COUNT 1
+
 // LEFT:
 
 #ifndef KEY00

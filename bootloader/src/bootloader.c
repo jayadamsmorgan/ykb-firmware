@@ -1,9 +1,11 @@
+#include "hal.h"
 #include "hal_flash.h"
 
 #include "bl_version.h"
 #include "boot_config.h"
 #include "clock.h"
 #include "error_handler.h"
+#include "hal_systick.h"
 #include "logging.h"
 #include "memory_map.h"
 
@@ -14,9 +16,11 @@ typedef struct {
     void (*jump_ptr)(void);
 } jump_t;
 
-static void jump_to_app(uint32_t address) {
+static void jump_to_app(unsigned long address) {
 
-    LOG_INFO("Jumping to application at address %d", address);
+    LOG_INFO("Jumping to application at address 0x%02lX", address);
+
+    systick_delay(20);
 
     volatile jump_t *application = (volatile jump_t *)address;
 
@@ -103,6 +107,7 @@ int main(void) {
     LOG_INFO("Start booting YarmanKB bootloader version " YKB_BL_FW_VERSION);
     setup_error_handler();
     ERR_H(setup_clock());
+    ERR_H(hal_init());
     ERR_H(setup_logging());
 
     LOG_INFO("Bootloader booted successfully.");

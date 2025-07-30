@@ -1,0 +1,4 @@
+#ifndef HAL_BLUETOOTH_H
+#define HAL_BLUETOOTH_H
+
+#endif // HAL_BLUETOOTH_H
