@@ -101,7 +101,9 @@ void _log(log_level level, const char *file_name, const int line,
     printf("\r\n");
 }
 
+#ifdef LOGGING_BACKEND_UART
 static uart_handle_t uart_handle;
+#endif // LOGGING_BACKEND_UART
 
 #ifdef LOGGING_BACKEND_UART
 static inline hal_err setup_uart_logging() {
