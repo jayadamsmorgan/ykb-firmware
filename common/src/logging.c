@@ -211,8 +211,12 @@ hal_err setup_logging() {
 
         for (uint8_t i = 0; i < log_str_queue_index; i++) {
             string_to_write str = log_str_queue[i];
+#ifdef LOGGING_BACKEND_UART
             write_uart(str.data, str.len);
+#endif // LOGGING_BACKEND_UART
+#ifdef LOGGING_BACKEND_SWO
             write_swo(str.data, str.len);
+#endif // LOGGING_BACKEND_SWO
         }
 
         log_str_queue_index = 0;

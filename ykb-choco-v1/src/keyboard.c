@@ -19,7 +19,7 @@
 
 extern kb_state_t kb_state;
 
-__ALIGN_BEGIN static uint8_t mappings[KB_KEY_COUNT * LAYER_COUNT] __ALIGN_END =
+__ALIGN_BEGIN static uint8_t mappings[KB_KEY_COUNT * KB_LAYER_COUNT] __ALIGN_END =
     {
 
 #ifdef LEFT
