@@ -2,6 +2,7 @@
 #define HAL_USB_H
 
 #include "hal_err.h"
+#include "hal_exti.h"
 #include "stm32wbxx.h"
 
 #define EP_MPS_64 0U
@@ -107,6 +108,18 @@ typedef struct {
     uint8_t xfer_fill_db; /*!< double buffer Need to Fill new buffer  used with
                              bulk_in                 */
 } USB_EPTypeDef;
+
+static inline void hal_usb_wakeup_it_enable() {
+    hal_exti_enable_it(EXTI_EVENT_28);
+}
+
+static inline void hal_usb_wakeup_it_disable() {
+    hal_exti_disable_it(EXTI_EVENT_28);
+}
+
+static inline bool hal_usb_wakeup_it_enabled() {
+    return hal_exti_enabled_it(EXTI_EVENT_28);
+}
 
 void hal_usb_device_init(USB_CfgTypeDef cfg);
 void hal_usb_enable_interrupts();

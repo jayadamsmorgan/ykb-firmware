@@ -8,7 +8,10 @@
 #include "memory_map.h"
 #include "pinout.h"
 
+#if defined(USB_ENABLED) && USB_ENABLED == 1
+#include "usb.h"
 #include "usb/usbd_hid.h"
+#endif // USB_ENABLED
 
 static uint8_t hid_buff[HID_BUFFER_SIZE];
 static uint8_t pressed_amount = 0;
@@ -42,6 +45,7 @@ kb_state_t kb_state = {
             .key_polling_rate = KB_DEFAULT_POLLING_RATE,
         },
     .layer = 0,
+    .layer_count = KB_LAYER_COUNT,
 };
 
 void kb_super_init() {
@@ -124,15 +128,10 @@ void kb_process_key(uint8_t key) {
         return;
     }
 
-#if LAYER_COUNT > 1
-    if (key == KEY_LAYER) {
-        kb_state.layer++;
-        if (kb_state.layer == LAYER_COUNT) {
-            kb_state.layer = 0;
-        }
+    if (key == KEY_LAYER && kb_state.layer_count > 1) {
+        kb_state.layer = (kb_state.layer + 1) % kb_state.layer_count;
         return;
     }
-#endif // LAYER_COUNT > 1
 
 #ifdef PIN_CAPSLOCK_LED
     if (key == KEY_CAPSLOCK) {
@@ -241,10 +240,6 @@ void kb_calibrate(uint16_t *min_thresholds, uint16_t *max_thresholds) {
            sizeof(kb_state.max_thresholds));
     kb_save_to_eeprom();
 }
-
-#if defined(USB_ENABLED) && USB_ENABLED == 1
-extern USBD_HandleTypeDef hUsbDeviceFS;
-#endif // USB_ENABLED
 
 static uint32_t previous_poll_time = 0;
 

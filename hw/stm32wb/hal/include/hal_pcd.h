@@ -75,9 +75,6 @@ typedef struct {
 #define __HAL_PCD_CLEAR_FLAG(__HANDLE__, __INTERRUPT__)                        \
     (((__HANDLE__)->Instance->ISTR) &= (uint16_t)(~(__INTERRUPT__)))
 
-#define __HAL_USB_WAKEUP_EXTI_ENABLE_IT() EXTI->IMR1 |= USB_WAKEUP_EXTI_LINE
-#define __HAL_USB_WAKEUP_EXTI_DISABLE_IT() EXTI->IMR1 &= ~(USB_WAKEUP_EXTI_LINE)
-
 HAL_StatusTypeDef HAL_PCD_Init(PCD_HandleTypeDef *hpcd);
 HAL_StatusTypeDef HAL_PCD_DeInit(PCD_HandleTypeDef *hpcd);
 void HAL_PCD_MspInit(PCD_HandleTypeDef *hpcd);
@@ -119,9 +116,6 @@ HAL_StatusTypeDef HAL_PCD_DeActivateRemoteWakeup(PCD_HandleTypeDef *hpcd);
 uint32_t HAL_PCD_EP_GetRxCount(PCD_HandleTypeDef const *hpcd, uint8_t ep_addr);
 
 PCD_StateTypeDef HAL_PCD_GetState(PCD_HandleTypeDef const *hpcd);
-
-#define USB_WAKEUP_EXTI_LINE                                                   \
-    (0x1U << 28) /*!< USB FS EXTI Line WakeUp Interrupt */
 
 #define PCD_EP0MPS_64 EP_MPS_64
 #define PCD_EP0MPS_32 EP_MPS_32

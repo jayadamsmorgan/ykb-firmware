@@ -17,4 +17,12 @@ void systick_delay(uint32_t ms);
 
 uint32_t systick_get_tick();
 
+static inline void systick_suspend() {
+    CLEAR_BIT(SysTick->CTRL, SysTick_CTRL_TICKINT_Msk);
+}
+
+static inline void systick_resume() {
+    SET_BIT(SysTick->CTRL, SysTick_CTRL_TICKINT_Msk);
+}
+
 #endif // HAL_SYSTICK_H

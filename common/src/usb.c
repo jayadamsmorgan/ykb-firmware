@@ -4,6 +4,8 @@
 
 #include "usb.h"
 
+#include "hal_periph_clock.h"
+
 #include "logging.h"
 #include "usb/usbd_core.h"
 #include "usb/usbd_hid.h"
@@ -16,6 +18,9 @@ hal_err setup_usb() {
     LOG_INFO("Setting up...");
 
     hal_err err;
+
+    LOG_TRACE("Selecting USB clock source...");
+    periph_clock_select_usb_source(PERIPHCLK_USB_PLLQ);
 
     LOG_TRACE("Starting init...");
     err = usb_device_init(&hUsbDeviceFS, &HID_Desc, DEVICE_FS);

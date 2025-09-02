@@ -2,6 +2,7 @@
 #define HAL_IPCC_H
 
 #include "hal_err.h"
+#include "hal_exti.h"
 #include "stm32wbxx.h"
 
 typedef IPCC_TypeDef ipcc_t;
@@ -42,6 +43,18 @@ struct __ipcc_handle_t {
 
     __IO ipcc_state state;
 };
+
+static inline void ipcc_wakeup_it_enable() {
+    hal_exti_enable_it(EXTI_EVENT_36);
+}
+
+static inline void ipcc_wakeup_it_disable() {
+    hal_exti_disable_it(EXTI_EVENT_36);
+}
+
+static inline bool ipcc_wakeup_it_enabled() {
+    return hal_exti_enabled_it(EXTI_EVENT_36);
+}
 
 static inline void ipcc_c1_enable_it_rxo(ipcc_t *instance) {
     SET_BIT(instance->C1CR, IPCC_C1CR_RXOIE);

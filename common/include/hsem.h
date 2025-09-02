@@ -19,8 +19,10 @@ typedef enum {
     HSEM_STATUS_LOCKED = 2U,
 } hsem_status;
 
+hal_err hsem_init();
+
 hsem_t *hsem_new(uint8_t proc_id);
-void hsem_release(hsem_t *hsem);
+hal_err hsem_release(hsem_t *hsem);
 
 hal_err hsem_lock(hsem_t *hsem);
 hal_err hsem_unlock(hsem_t *hsem);

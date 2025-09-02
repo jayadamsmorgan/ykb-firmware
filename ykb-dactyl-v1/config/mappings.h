@@ -5,7 +5,7 @@
 
 // Mappings:
 
-#define LAYER_COUNT 1
+#define KB_LAYER_COUNT 1
 
 // LEFT:
 

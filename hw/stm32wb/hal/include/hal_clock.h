@@ -22,6 +22,10 @@
 #define LSE_VALUE 32768U
 #endif // LSE_VALUE
 
+#ifndef LSI_VALUE
+#define LSI_VALUE 32000U
+#endif // LSI_VALUE
+
 typedef enum {
     CLOCK_SOURCE_MSI = 0U,
     CLOCK_SOURCE_HSI16 = 1U,
@@ -264,11 +268,18 @@ typedef enum {
     CLOCK_USB_RNG_SOURCE_MSI = 3U,
 } clock_usb_rng_source;
 
+typedef enum {
+    CLOCK_STOP_WAKEUP_SOURCE_MSI = 0U,
+    CLOCK_STOP_WAKEUP_SOURCE_HSI16 = 1U,
+} clock_stop_wakeup_source;
+
 // Global
 uint32_t clock_get_system_clock();
 
-void clock_hclk2_set_prescaler(clock_hclk2_prescaler presc);
-clock_hclk2_prescaler clock_hclk2_get_prescaler();
+uint32_t clock_get_hclk_frequency();
+
+uint32_t clock_get_pclk1_frequency();
+uint32_t clock_get_pclk2_frequency();
 
 static inline void clock_select_source(clock_source source) {
     MODIFY_BITS(RCC->CFGR, RCC_CFGR_SW_Pos, source, BITMASK_2BIT);
@@ -276,18 +287,52 @@ static inline void clock_select_source(clock_source source) {
     }
 }
 
-uint32_t clock_get_hclk_frequency();
+static inline clock_source clock_get_source() {
+    return READ_BITS(RCC->CFGR, RCC_CFGR_SWS_Pos, BITMASK_2BIT);
+}
 
-uint32_t clock_get_pclk1_frequency();
-uint32_t clock_get_pclk2_frequency();
+static inline void clock_hclk2_set_prescaler(clock_hclk2_prescaler presc) {
+    MODIFY_BITS(RCC->EXTCFGR, RCC_EXTCFGR_C2HPRE_Pos, presc, BITMASK_4BIT);
+}
+
+static inline clock_hclk2_prescaler clock_hclk2_get_prescaler() {
+    return READ_BITS(RCC->EXTCFGR, RCC_EXTCFGR_C2HPRE_Pos, BITMASK_4BIT);
+}
+
+static inline void
+clock_stop_wakeup_select_source(clock_stop_wakeup_source source) {
+    MODIFY_BITS(RCC->CFGR, RCC_CFGR_STOPWUCK_Pos, source, BITMASK_1BIT);
+}
+
+// MSI
+uint32_t clock_get_msi_frequency();
 
 // HSE
-void clock_hse_enable();
+static inline void clock_hse_enable() {
+    SET_BIT(RCC->CR, RCC_CR_HSEON);
+    while (READ_BIT(RCC->CR, RCC_CR_HSERDY) == 0) {
+        // Wait for HSE to be ready
+    }
+}
+
+static inline bool clock_hse_div2_enabled() {
+    return READ_BIT(RCC->CR, RCC_CR_HSEPRE);
+}
 
 // PLL
-void clock_pll_config(const clock_pll_config_t *config);
-void clock_pll_update_config(clock_pll_config_t *config);
-void clock_pll_enable();
+void clock_pll_config(clock_pll_config_t *config);
+void clock_pll_get_config(clock_pll_config_t *config);
+
+static inline void clock_pll_enable() {
+    SET_BIT(RCC->CR, RCC_CR_PLLON);
+    while (READ_BIT(RCC->CR, RCC_CR_PLLRDY) == 0) {
+        // Wait for PLL to be ready
+    }
+}
+
+static inline clock_pll_source clock_pll_get_source(void) {
+    return READ_BIT(RCC->PLLCFGR, RCC_PLLCFGR_PLLSRC);
+}
 
 // USB
 static inline void clock_usb_enable() {

@@ -28,7 +28,7 @@ inline hal_err setup_clock() {
     pll_config.pllq = CLOCK_PLLQ_4;
     clock_pll_config(&pll_config);
 
-    clock_pll_update_config(&pll_config);
+    clock_pll_get_config(&pll_config);
     ASSERT(pll_config.source == CLOCK_PLL_SOURCE_HSE);
     ASSERT(pll_config.pllp == CLOCK_PLLP_NONE);
     ASSERT(pll_config.pllr == CLOCK_PLLR_3);
@@ -52,12 +52,7 @@ inline hal_err setup_clock() {
     clock_select_source(CLOCK_SOURCE_PLL);
     LOG_TRACE("System clock source is PLL.");
 
-    // Select PLLQ as 48MHz source for USB and RNG
-    periph_clock_select_usb_source(PERIPHCLK_USB_PLLQ);
-
-    // Update `SystemCoreClock` variable
-    SystemCoreClockUpdate();
-    ASSERT(SystemCoreClock == 64000000);
+    ASSERT(clock_get_system_clock() == 64000000U);
 
     LOG_INFO("Setup complete.");
 

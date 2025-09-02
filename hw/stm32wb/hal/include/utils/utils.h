@@ -23,6 +23,16 @@ typedef enum {
 
 typedef enum { HAL_UNLOCKED = 0x00, HAL_LOCKED = 0x01 } HAL_LockTypeDef;
 
+#define HAL_INIT_CRITICAL_SECTION()
+
+#define HAL_ENTER_CRITICAL_SECTION()                                           \
+    uint32_t __primask_bit = __get_PRIMASK();                                  \
+    __disable_irq()
+
+#define HAL_EXIT_CRITICIAL_SECTION()                                           \
+    __set_PRIMASK(__primask_bit);                                              \
+    __enable_irq()
+
 #define HAL_IS_BIT_SET(REG, BIT) (((REG) & (BIT)) == (BIT))
 #define HAL_IS_BIT_CLR(REG, BIT) (((REG) & (BIT)) == 0U)
 

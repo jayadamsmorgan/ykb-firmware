@@ -278,8 +278,6 @@ typedef struct {
 
     adc_init_t init;
 
-    // TODO: DMA handle here
-
     __IO uint32_t state;
     __IO uint32_t error;
 
@@ -323,7 +321,9 @@ typedef struct {
 } adc_channel_rank_t;
 
 #define __ADC_CHANNEL_RANK(REG, OFFSET)                                        \
-    (adc_channel_rank_t) { .reg = REG, .offset = OFFSET }
+    (adc_channel_rank_t) {                                                     \
+        .reg = REG, .offset = OFFSET                                           \
+    }
 
 #define ADC_CHANNEL_RANK_1 __ADC_CHANNEL_RANK(&ADC1->SQR1, 6)
 #define ADC_CHANNEL_RANK_2 __ADC_CHANNEL_RANK(&ADC1->SQR1, 12)
@@ -390,7 +390,9 @@ static inline bool adc_conversion_ongoing() {
            adc_conversion_ongoing_injected();
 }
 
-static inline uint32_t adc_get_value() { return READ_REG(ADC1->DR); }
+static inline uint32_t adc_get_value() {
+    return READ_REG(ADC1->DR);
+}
 
 hal_err adc_conversion_stop(adc_conversion_group group);
 

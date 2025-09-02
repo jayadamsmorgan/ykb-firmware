@@ -16,7 +16,10 @@
 #include "eeprom.h"
 #include "error_handler.h"
 #include "fw_update_handler.h"
+#include "hsem.h"
+#include "ipcc.h"
 #include "keyboard.h"
+#include "rtc.h"
 #include "usb.h"
 
 int main(void) {
@@ -37,6 +40,9 @@ int main(void) {
 #endif // BOOT0_HANDLER_ENABLED
     ERR_H(eeprom_init());
     ERR_H(setup_fw_update_handler());
+    ERR_H(setup_ipcc());
+    ERR_H(setup_rtc());
+    ERR_H(hsem_init());
 
     // Main
     ERR_H(setup_adc());

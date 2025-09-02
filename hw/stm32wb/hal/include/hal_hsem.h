@@ -3,6 +3,7 @@
 
 #include "hal_err.h"
 
+#include "hal_exti.h"
 #include "stm32wbxx.h"
 
 #include <stddef.h>
@@ -48,6 +49,18 @@ typedef void (*hsem_unlock_callback)(uint32_t status_reg);
 
 #define HSEM_C1_COREID 0x4U << HSEM_CR_COREID_Pos
 #define HSEM_C2_COREID 0x8U << HSEM_CR_COREID_Pos
+
+static inline void hal_hsem_wakeup_it_enable() {
+    hal_exti_enable_it(EXTI_EVENT_38);
+}
+
+static inline void hal_hsem_wakeup_it_disable() {
+    hal_exti_disable_it(EXTI_EVENT_38);
+}
+
+static inline bool hal_hsem_wakeup_it_enabled() {
+    return hal_exti_enabled_it(EXTI_EVENT_38);
+}
 
 static inline void hal_hsem_c1_enable_it(hsem_index index) {
     SET_BIT(HSEM->C1IER, 1U << index);
