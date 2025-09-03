@@ -24,11 +24,10 @@ void setup_error_handler() {
 }
 
 void error_handler(hal_err error_code) {
-
-#ifdef PIN_ERROR_HANDLER_LED
     if (error_code == OK)
         return;
 
+#ifdef PIN_ERROR_HANDLER_LED
     if (error_code > 0 || error_code > -100) {
         // Unknown error
         gpio_digital_write(led_dbg, HIGH);
