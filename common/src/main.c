@@ -40,9 +40,9 @@ int main(void) {
 #endif // BOOT0_HANDLER_ENABLED
     ERR_H(eeprom_init());
     ERR_H(setup_fw_update_handler());
-    ERR_H(setup_ipcc());
-    ERR_H(setup_rtc());
-    ERR_H(hsem_init());
+    // ERR_H(setup_ipcc());
+    // ERR_H(setup_rtc());
+    // ERR_H(hsem_init());
 
     // Main
     ERR_H(setup_adc());
