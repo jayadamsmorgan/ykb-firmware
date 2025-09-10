@@ -371,26 +371,26 @@ typedef enum {
 // ===== Per-pin structure =====
 
 typedef struct {
-    gpio_t *gpio;
-    uint8_t num;
-    adc_channel adc_chan : 5;
+    gpio_t *const gpio;
+    const uint8_t num;
+    const adc_channel adc_chan : 5;
 
-    gpio_af0_feature af0_feature : 4;
-    gpio_af1_feature af1_feature : 5;
-    gpio_af2_feature af2_feature : 2;
-    gpio_af3_feature af3_feature : 4;
-    gpio_af4_feature af4_feature : 3;
-    gpio_af5_feature af5_feature : 4;
-    gpio_af6_feature af6_feature : 2;
-    gpio_af7_feature af7_feature : 3;
-    gpio_af8_feature af8_feature : 3;
-    gpio_af9_feature af9_feature : 5;
-    gpio_af10_feature af10_feature : 4;
-    gpio_af11_feature af11_feature : 6;
-    gpio_af12_feature af12_feature : 3;
-    gpio_af13_feature af13_feature : 4;
-    gpio_af14_feature af14_feature : 4;
-    gpio_af15_feature af15_feature : 1;
+    const gpio_af0_feature af0_feature : 4;
+    const gpio_af1_feature af1_feature : 5;
+    const gpio_af2_feature af2_feature : 2;
+    const gpio_af3_feature af3_feature : 4;
+    const gpio_af4_feature af4_feature : 3;
+    const gpio_af5_feature af5_feature : 4;
+    const gpio_af6_feature af6_feature : 2;
+    const gpio_af7_feature af7_feature : 3;
+    const gpio_af8_feature af8_feature : 3;
+    const gpio_af9_feature af9_feature : 5;
+    const gpio_af10_feature af10_feature : 4;
+    const gpio_af11_feature af11_feature : 6;
+    const gpio_af12_feature af12_feature : 3;
+    const gpio_af13_feature af13_feature : 4;
+    const gpio_af14_feature af14_feature : 4;
+    const gpio_af15_feature af15_feature : 1;
 } gpio_pin_t;
 
 // ===== Pin declarations =====

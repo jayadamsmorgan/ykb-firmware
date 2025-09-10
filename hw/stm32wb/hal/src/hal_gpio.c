@@ -4,7 +4,6 @@
 #include "hal_clock.h"
 #include "hal_cortex.h"
 #include "hal_err.h"
-#include "stm32wbxx.h"
 
 #include <stdint.h>
 
